@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: dingding_backend
+    restart: unless-stopped
+    volumes:
+      - dingding_data:/data
+      - ./config.json:/data/config.json:ro
+    environment:
+      - DATABASE_URL=sqlite:////data/dingding.db
+    networks:
+      - dingding_net
+
+  frontend:
+    build: ./frontend
+    container_name: dingding_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - dingding_net
+
+volumes:
+  dingding_data:
+
+networks:
+  dingding_net:
+    driver: bridge

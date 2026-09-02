@@ -1,0 +1,118 @@
+import { useEffect, useState } from 'react'
+import { Calendar, Modal, Select, message } from 'antd'
+import type { Dayjs } from 'dayjs'
+import dayjs from 'dayjs'
+import api from '../api'
+
+interface Shift {
+  id: number
+  name: string
+  color: string
+  is_rest: boolean
+}
+
+interface ScheduleItem {
+  date: string
+  shift_template_id: number
+  shift_name: string
+  color: string
+  is_rest: boolean
+}
+
+function SchedulePage() {
+  const [shifts, setShifts] = useState<Shift[]>([])
+  const [scheduleMap, setScheduleMap] = useState<Record<string, ScheduleItem>>({})
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null)
+  const [selectedShift, setSelectedShift] = useState<number | null>(null)
+  const [currentMonth, setCurrentMonth] = useState(dayjs())
+
+  const fetchData = async (year: number, month: number) => {
+    try {
+      const [shiftsRes, scheduleRes] = await Promise.all([
+        api.get('/shifts'),
+        api.get('/schedule', { params: { year, month } }),
+      ])
+      setShifts(shiftsRes.data)
+      const map: Record<string, ScheduleItem> = {}
+      scheduleRes.data.forEach((item: ScheduleItem) => {
+        map[item.date] = item
+      })
+      setScheduleMap(map)
+    } catch (e) {
+      message.error('加载排班失败')
+    }
+  }
+
+  useEffect(() => {
+    fetchData(currentMonth.year(), currentMonth.month() + 1)
+  }, [currentMonth])
+
+  const handleDateSelect = (date: Dayjs) => {
+    setSelectedDate(date)
+    const item = scheduleMap[date.format('YYYY-MM-DD')]
+    setSelectedShift(item ? item.shift_template_id : null)
+  }
+
+  const handleSave = async () => {
+    if (!selectedDate) return
+    try {
+      await api.post('/schedule/set', {
+        date: selectedDate.format('YYYY-MM-DD'),
+        shift_template_id: selectedShift,
+      })
+      message.success('保存成功')
+      setSelectedDate(null)
+      fetchData(currentMonth.year(), currentMonth.month() + 1)
+    } catch (e) {
+      message.error('保存失败')
+    }
+  }
+
+  const dateCellRender = (date: Dayjs) => {
+    const item = scheduleMap[date.format('YYYY-MM-DD')]
+    if (!item) return null
+    return (
+      <div
+        style={{
+          marginTop: 4,
+          padding: '2px 6px',
+          borderRadius: 4,
+          background: item.color,
+          color: '#fff',
+          fontSize: 12,
+          textAlign: 'center',
+        }}
+      >
+        {item.shift_name}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <Calendar
+        value={currentMonth}
+        onChange={setCurrentMonth}
+        onSelect={handleDateSelect}
+        cellRender={dateCellRender}
+      />
+      <Modal
+        title={`设置 ${selectedDate?.format('YYYY-MM-DD')} 排班`}
+        open={!!selectedDate}
+        onOk={handleSave}
+        onCancel={() => setSelectedDate(null)}
+      >
+        <Select
+          style={{ width: '100%' }}
+          placeholder="选择班次"
+          value={selectedShift}
+          onChange={setSelectedShift}
+          allowClear
+          options={shifts.map((s) => ({ label: s.name, value: s.id }))}
+        />
+      </Modal>
+    </div>
+  )
+}
+
+export default SchedulePage
