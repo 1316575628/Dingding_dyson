@@ -11,3 +11,6 @@ venv
 .gitignore
 .DS_Store
 *.md
+config.json
+data.json
+.env
