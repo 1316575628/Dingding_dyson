@@ -1,0 +1,9 @@
+{
+    "API_KEY": "uskQKE43P37GVMdnTLDRrMp",
+    "DST_ID": "dstMBfWtvKaAm3UQBb",
+    "fw_webhook": "https://fwalert.com/48d9e6c3-32b1-46c5-a073-041bc24aca29?message=",
+    "fs_webhook": "https://open.feishu.cn/open-apis/bot/v2/hook/01184195-956c-48d2-93d9-6e3b8be89152",
+    "clockInDetection": "上班未打卡",
+    "clockOutDetection": "下班未打卡",
+    "work_overtime": "0"
+}
