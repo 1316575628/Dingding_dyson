@@ -4,6 +4,7 @@ from database import engine, Base
 from routers import dashboard, shifts, schedule, logs, config, import_data, skip
 from scheduler import start_scheduler
 from seed import seed_data
+from migrations import run_migrations
 
 app = FastAPI(title="钉钉打卡提醒系统 Web API")
 
@@ -25,6 +26,9 @@ app.add_middleware(
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
+
+# 自动迁移：补齐新增字段
+run_migrations(engine)
 
 # 初始化默认数据
 seed_data()
