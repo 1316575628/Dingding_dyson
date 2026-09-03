@@ -16,6 +16,8 @@ env:
 permissions:
   contents: read
   packages: write
+  attestations: write
+  id-token: write
 
 jobs:
   build-backend:
@@ -38,6 +40,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify registry login
+        run: |
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Image: ${{ env.BACKEND_IMAGE }}"
+          docker info | grep -i registry
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -50,6 +58,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -60,6 +69,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+      - name: Verify pushed image in registry
+        run: |
+          echo "Inspecting first tag: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
+          docker buildx imagetools inspect ${{ fromJSON(steps.meta.outputs.json).tags[0] }} || true
+
+      - name: Export backend image as tar
+        run: |
+          mkdir -p /tmp/images
+          docker pull ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          docker save ${{ fromJSON(steps.meta.outputs.json).tags[0] }} -o /tmp/images/backend.tar
+          ls -lh /tmp/images/backend.tar
+
+      - name: Upload backend image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image-tar
+          path: /tmp/images/backend.tar
+          retention-days: 7
 
   build-frontend:
     name: Build Frontend Image
@@ -81,6 +111,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify registry login
+        run: |
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Image: ${{ env.FRONTEND_IMAGE }}"
+          docker info | grep -i registry
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -93,6 +129,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -103,3 +140,24 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+      - name: Verify pushed image in registry
+        run: |
+          echo "Inspecting first tag: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
+          docker buildx imagetools inspect ${{ fromJSON(steps.meta.outputs.json).tags[0] }} || true
+
+      - name: Export frontend image as tar
+        run: |
+          mkdir -p /tmp/images
+          docker pull ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          docker save ${{ fromJSON(steps.meta.outputs.json).tags[0] }} -o /tmp/images/frontend.tar
+          ls -lh /tmp/images/frontend.tar
+
+      - name: Upload frontend image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image-tar
+          path: /tmp/images/frontend.tar
+          retention-days: 7
