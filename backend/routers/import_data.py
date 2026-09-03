@@ -6,7 +6,7 @@ import re
 
 from database import get_db
 from models import ShiftTemplate, Schedule, PushLog
-from services.push import log_system
+from services.push import log_info
 
 router = APIRouter(prefix="/import", tags=["import"])
 
@@ -84,7 +84,7 @@ def import_schedule_json(file: UploadFile = File(...), db: Session = Depends(get
 
     db.commit()
 
-    log_system(db, "system", f"导入排班 JSON：创建 {created_shifts} 个班次，导入 {imported_days} 天，跳过 {skipped_days} 天异常数据")
+    log_info(db, "system", f"导入排班 JSON：创建 {created_shifts} 个班次，导入 {imported_days} 天，跳过 {skipped_days} 天异常数据")
 
     return {
         "message": "导入成功",
