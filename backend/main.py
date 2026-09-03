@@ -1,8 +1,10 @@
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
+from database import engine, Base, SessionLocal
 from routers import dashboard, shifts, schedule, logs, config, import_data, skip
-from scheduler import start_scheduler
+from scheduler import start_scheduler, scheduler
 from seed import seed_data
 from migrations import run_migrations
 
@@ -49,3 +51,25 @@ app.include_router(skip.router, prefix="/api")
 @app.get("/")
 def read_root():
     return {"message": "钉钉打卡提醒系统 Web API"}
+
+
+@app.get("/health")
+def health_check():
+    db_ok = False
+    try:
+        db = SessionLocal()
+        db.execute(Base.metadata.tables["system_configs"].select().limit(1))
+        db_ok = True
+    except Exception:
+        db_ok = False
+    finally:
+        db.close()
+
+    scheduler_running = scheduler is not None and scheduler.running
+
+    return {
+        "status": "healthy" if db_ok and scheduler_running else "unhealthy",
+        "timestamp": datetime.now().isoformat(),
+        "database": "ok" if db_ok else "error",
+        "scheduler": "running" if scheduler_running else "stopped",
+    }

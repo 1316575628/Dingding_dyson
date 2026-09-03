@@ -1,9 +1,8 @@
-import json
-import os
-from sqlalchemy.orm import Session
+from datetime import time as dt_time
 
 from database import SessionLocal
 from models import ShiftTemplate, SystemConfig
+from routers.config import _config_file_paths, load_config_from_file
 
 
 def seed_data():
@@ -46,7 +45,6 @@ def seed_data():
         for item in defaults:
             existing = db.query(ShiftTemplate).filter(ShiftTemplate.name == item["name"]).first()
             if not existing:
-                from datetime import time as dt_time
                 shift = ShiftTemplate(
                     name=item["name"],
                     color=item["color"],
@@ -60,24 +58,14 @@ def seed_data():
                 db.add(shift)
 
         # 从 config.json 初始化系统配置（兼容本地开发和 Docker 挂载）
-        config_paths = [
-            "/data/config.json",
-            os.path.join(os.path.dirname(__file__), "config.json"),
-            os.path.join(os.path.dirname(__file__), "..", "config.json"),
-        ]
         config_path = None
-        for p in config_paths:
-            if os.path.exists(p) and os.path.isfile(p):
+        for p in _config_file_paths():
+            if p.exists() and p.is_file():
                 config_path = p
                 break
         if config_path:
             try:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    cfg = json.load(f)
-                for key, value in cfg.items():
-                    existing = db.query(SystemConfig).filter(SystemConfig.key == key).first()
-                    if not existing:
-                        db.add(SystemConfig(key=key, value=str(value)))
+                load_config_from_file(config_path, db, overwrite=False)
             except Exception as e:
                 print(f"[seed] 读取 config.json 失败 ({config_path}): {e}")
 
