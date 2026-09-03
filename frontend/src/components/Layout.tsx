@@ -23,20 +23,21 @@ function Layout() {
   const navigate = useNavigate()
 
   return (
-    <AntLayout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark" width={200}>
-        <div className="logo">钉钉打卡提醒</div>
+    <AntLayout style={{ minHeight: '100vh', background: '#f8f9fa' }}>
+      <Sider theme="light" width={220} style={{ background: '#fff' }}>
+        <div className="logo" style={{ color: '#1a73e8' }}>钉钉打卡提醒</div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
+          style={{ borderRight: 0 }}
         />
       </Sider>
-      <AntLayout>
-        <Header style={{ background: '#fff', padding: '0 24px' }}>
-          <h2 style={{ margin: 0 }}>
+      <AntLayout style={{ background: '#f8f9fa' }}>
+        <Header style={{ background: '#fff', padding: '0 28px', display: 'flex', alignItems: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 500, color: '#202124' }}>
             {menuItems.find((item) => item.key === location.pathname)?.label || '钉钉打卡提醒'}
           </h2>
         </Header>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Table, Button, Modal, Form, Input, TimePicker, InputNumber, Switch, ColorPicker, message, Popconfirm } from 'antd'
+import { Table, Button, Modal, Form, Input, TimePicker, InputNumber, Switch, ColorPicker, message, Popconfirm, Card } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
 import api from '../api'
 import dayjs from 'dayjs'
 
@@ -39,7 +40,7 @@ function Shifts() {
   const openCreate = () => {
     setEditing(null)
     form.resetFields()
-    form.setFieldsValue({ color: '#1890ff', remind_before_min: 15, remind_after_min: 30, overtime_min: 0, is_rest: false })
+    form.setFieldsValue({ color: '#1a73e8', remind_before_min: 15, remind_after_min: 30, overtime_min: 0, is_rest: false })
     setModalOpen(true)
   }
 
@@ -92,32 +93,43 @@ function Shifts() {
       title: '颜色',
       dataIndex: 'color',
       key: 'color',
-      render: (color: string) => <div style={{ width: 24, height: 24, background: color, borderRadius: 4 }} />,
+      width: 80,
+      render: (color: string) => (
+        <div style={{ width: 24, height: 24, background: color, borderRadius: 6, border: '1px solid #e8eaed' }} />
+      ),
     },
     { title: '上班时间', dataIndex: 'start_time', key: 'start_time' },
     { title: '下班时间', dataIndex: 'end_time', key: 'end_time' },
-    { title: '上班提前(分)', dataIndex: 'remind_before_min', key: 'remind_before_min' },
-    { title: '下班延后(分)', dataIndex: 'remind_after_min', key: 'remind_after_min' },
-    { title: '加班(分)', dataIndex: 'overtime_min', key: 'overtime_min' },
-    { title: '休息', dataIndex: 'is_rest', key: 'is_rest', render: (v: boolean) => (v ? '是' : '否') },
+    { title: '上班提前(分)', dataIndex: 'remind_before_min', key: 'remind_before_min', width: 120 },
+    { title: '下班延后(分)', dataIndex: 'remind_after_min', key: 'remind_after_min', width: 120 },
+    { title: '加班(分)', dataIndex: 'overtime_min', key: 'overtime_min', width: 100 },
+    { title: '休息', dataIndex: 'is_rest', key: 'is_rest', width: 80, render: (v: boolean) => (v ? '是' : '否') },
     {
       title: '操作',
       key: 'action',
+      width: 160,
       render: (_: any, record: Shift) => (
-        <>
-          <Button type="link" onClick={() => openEdit(record)}>编辑</Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button type="link" size="small" onClick={() => openEdit(record)} style={{ padding: 0 }}>编辑</Button>
           <Popconfirm title="确定删除？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" danger>删除</Button>
+            <Button type="link" danger size="small" style={{ padding: 0 }}>删除</Button>
           </Popconfirm>
-        </>
+        </div>
       ),
     },
   ]
 
   return (
     <div>
-      <Button type="primary" onClick={openCreate} style={{ marginBottom: 16 }}>新建班次</Button>
-      <Table rowKey="id" columns={columns} dataSource={shifts} loading={loading} />
+      <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ margin: 0, fontWeight: 500, color: '#202124' }}>班次模板</h3>
+        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} style={{ borderRadius: 8 }}>
+          新建班次
+        </Button>
+      </div>
+      <Card bodyStyle={{ padding: 0 }}>
+        <Table rowKey="id" columns={columns} dataSource={shifts} loading={loading} pagination={false} />
+      </Card>
       <Modal
         title={editing ? '编辑班次' : '新建班次'}
         open={modalOpen}
@@ -136,19 +148,19 @@ function Shifts() {
             <Switch />
           </Form.Item>
           <Form.Item name="start_time" label="上班时间">
-            <TimePicker format="HH:mm" />
+            <TimePicker format="HH:mm" style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="end_time" label="下班时间">
-            <TimePicker format="HH:mm" />
+            <TimePicker format="HH:mm" style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="remind_before_min" label="上班提醒提前量（分钟）">
-            <InputNumber min={0} />
+            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="remind_after_min" label="下班提醒延后量（分钟）">
-            <InputNumber min={0} />
+            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="overtime_min" label="加班时长（分钟）">
-            <InputNumber min={0} />
+            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

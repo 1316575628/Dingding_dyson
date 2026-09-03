@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
-import { Form, Input, Button, Tabs, message, Card } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Tabs, message, Card, Space, Divider } from 'antd'
+import { UploadOutlined, ReloadOutlined } from '@ant-design/icons'
 import api from '../api'
 
 function Settings() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [reloadLoading, setReloadLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchConfig = async () => {
@@ -30,6 +31,19 @@ function Settings() {
       message.error('保存失败')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleReload = async () => {
+    setReloadLoading(true)
+    try {
+      const res = await api.post('/config/reload')
+      message.success(res.data.message)
+      await fetchConfig()
+    } catch (e) {
+      message.error('重载失败')
+    } finally {
+      setReloadLoading(false)
     }
   }
 
@@ -91,7 +105,14 @@ function Settings() {
               <Form form={form} layout="vertical" onFinish={handleSave}>
                 {renderFormItems(coreItems)}
                 <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={loading}>保存</Button>
+                  <Space>
+                    <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: 8 }}>
+                      保存
+                    </Button>
+                    <Button icon={<ReloadOutlined />} loading={reloadLoading} onClick={handleReload} style={{ borderRadius: 8 }}>
+                      从 config.json 热重载
+                    </Button>
+                  </Space>
                 </Form.Item>
               </Form>
             </Card>
@@ -102,9 +123,9 @@ function Settings() {
           label: '数据导入',
           children: (
             <Card title="导入排班 JSON">
-              <p>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名）</p>
+              <p style={{ color: '#5f6368' }}>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名）</p>
               <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
-              <Button icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()}>
+              <Button type="primary" icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()} style={{ borderRadius: 8 }}>
                 上传 data.json
               </Button>
             </Card>
@@ -115,14 +136,16 @@ function Settings() {
           label: '扩展通知（预留）',
           children: (
             <Card>
-              <p>以下配置本期仅作预留，发送逻辑将在后续版本实现。</p>
+              <p style={{ color: '#5f6368' }}>以下配置本期仅作预留，发送逻辑将在后续版本实现。</p>
               <Form form={form} layout="vertical" onFinish={handleSave}>
-                <h4>邮件通知</h4>
+                <Divider orientation="left" style={{ color: '#5f6368', fontSize: 14 }}>邮件通知</Divider>
                 {renderFormItems(emailItems)}
-                <h4 style={{ marginTop: 24 }}>短信通知</h4>
+                <Divider orientation="left" style={{ color: '#5f6368', fontSize: 14 }}>短信通知</Divider>
                 {renderFormItems(smsItems)}
                 <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={loading}>保存</Button>
+                  <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: 8 }}>
+                    保存
+                  </Button>
                 </Form.Item>
               </Form>
             </Card>

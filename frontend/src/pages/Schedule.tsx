@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Calendar, Modal, Select, message } from 'antd'
+import { Calendar, Modal, Select, message, Card } from 'antd'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import api from '../api'
@@ -74,13 +74,15 @@ function SchedulePage() {
     return (
       <div
         style={{
-          marginTop: 4,
-          padding: '2px 6px',
-          borderRadius: 4,
+          marginTop: 6,
+          padding: '4px 8px',
+          borderRadius: 8,
           background: item.color,
           color: '#fff',
           fontSize: 12,
+          fontWeight: 500,
           textAlign: 'center',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
         }}
       >
         {item.shift_name}
@@ -89,15 +91,16 @@ function SchedulePage() {
   }
 
   return (
-    <div>
+    <Card bodyStyle={{ padding: 0 }}>
       <Calendar
         value={currentMonth}
         onChange={setCurrentMonth}
         onSelect={handleDateSelect}
         cellRender={dateCellRender}
+        fullscreen
       />
       <Modal
-        title={`设置 ${selectedDate?.format('YYYY-MM-DD')} 排班`}
+        title={`设置 ${selectedDate?.format('YYYY年MM月DD日')} 排班`}
         open={!!selectedDate}
         onOk={handleSave}
         onCancel={() => setSelectedDate(null)}
@@ -111,7 +114,7 @@ function SchedulePage() {
           options={shifts.map((s) => ({ label: s.name, value: s.id }))}
         />
       </Modal>
-    </div>
+    </Card>
   )
 }
 

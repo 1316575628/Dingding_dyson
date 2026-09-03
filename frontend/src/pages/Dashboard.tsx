@@ -54,56 +54,93 @@ function Dashboard() {
   }, [])
 
   if (!data) {
-    return <Spin size="large" />
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <Spin size="large" />
+      </div>
+    )
   }
 
-  const windowColor = data.window === '上班打卡时间' || data.window === '下班打卡时间' ? 'green' : 'default'
+  const inWindow = data.window === '上班打卡时间' || data.window === '下班打卡时间'
 
   return (
     <div>
-      <Row gutter={[16, 16]}>
-        <Col span={8}>
-          <Card>
-            <Statistic title="今日班次" value={data.shift?.name || '休息'} />
+      <Row gutter={[20, 20]}>
+        <Col xs={24} sm={8}>
+          <Card bodyStyle={{ padding: 24 }}>
+            <Statistic
+              title="今日班次"
+              value={data.shift?.name || '休息'}
+              valueStyle={{ color: data.shift ? '#1a73e8' : '#5f6368' }}
+            />
             {data.shift && (
-              <Tag color={data.shift.color} style={{ marginTop: 8 }}>
+              <Tag color={data.shift.color} style={{ marginTop: 12, fontSize: 13 }}>
                 {data.shift.name}
               </Tag>
             )}
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic title="上班窗口" value={data.window === '上班打卡时间' ? '进行中' : '未开启'} />
+        <Col xs={24} sm={8}>
+          <Card bodyStyle={{ padding: 24 }}>
+            <Statistic
+              title="上班窗口"
+              value={data.window === '上班打卡时间' ? '进行中' : '未开启'}
+              valueStyle={{ color: data.window === '上班打卡时间' ? '#34a853' : '#5f6368' }}
+            />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic title="下班窗口" value={data.window === '下班打卡时间' ? '进行中' : '未开启'} />
+        <Col xs={24} sm={8}>
+          <Card bodyStyle={{ padding: 24 }}>
+            <Statistic
+              title="下班窗口"
+              value={data.window === '下班打卡时间' ? '进行中' : '未开启'}
+              valueStyle={{ color: data.window === '下班打卡时间' ? '#34a853' : '#5f6368' }}
+            />
           </Card>
         </Col>
       </Row>
 
       <Card style={{ marginTop: 24 }} title="详细信息" loading={loading}>
-        <p>日期：{data.today}</p>
-        <p>当前时间：{data.now}</p>
-        <p>
-          班次：
-          {data.shift ? (
-            <Tag color={data.shift.color}>
-              {data.shift.name} {data.shift.start_time}-{data.shift.end_time}
+        <div style={{ display: 'grid', gap: 12, color: '#202124' }}>
+          <p style={{ margin: 0 }}>
+            <span style={{ color: '#5f6368' }}>日期：</span>
+            {data.today}
+          </p>
+          <p style={{ margin: 0 }}>
+            <span style={{ color: '#5f6368' }}>当前时间：</span>
+            {data.now}
+          </p>
+          <p style={{ margin: 0 }}>
+            <span style={{ color: '#5f6368' }}>班次：</span>
+            {data.shift ? (
+              <Tag color={data.shift.color} style={{ fontSize: 13 }}>
+                {data.shift.name} {data.shift.start_time}-{data.shift.end_time}
+              </Tag>
+            ) : (
+              '休息'
+            )}
+          </p>
+          <p style={{ margin: 0 }}>
+            <span style={{ color: '#5f6368' }}>当前是否在打卡时间段：</span>
+            <Tag color={inWindow ? '#34a853' : '#9aa0a6'} style={{ fontSize: 13 }}>
+              {data.window}
             </Tag>
-          ) : (
-            '休息'
-          )}
-        </p>
-        <p>
-          当前是否在打卡时间段：
-          <Tag color={windowColor}>{data.window}</Tag>
-        </p>
-        <p>上班状态（云端）：{data.clock_in_status || '未配置'}</p>
-        <p>下班状态（云端）：{data.clock_out_status || '未配置'}</p>
-        <Button type={data.skipped ? 'default' : 'primary'} danger={!data.skipped} onClick={toggleSkip}>
+          </p>
+          <p style={{ margin: 0 }}>
+            <span style={{ color: '#5f6368' }}>上班状态（云端）：</span>
+            {data.clock_in_status || '未配置'}
+          </p>
+          <p style={{ margin: 0 }}>
+            <span style={{ color: '#5f6368' }}>下班状态（云端）：</span>
+            {data.clock_out_status || '未配置'}
+          </p>
+        </div>
+        <Button
+          type={data.skipped ? 'default' : 'primary'}
+          danger={!data.skipped}
+          onClick={toggleSkip}
+          style={{ marginTop: 24, borderRadius: 8 }}
+        >
           {data.skipped ? '取消跳过今日' : '今日跳过'}
         </Button>
       </Card>
