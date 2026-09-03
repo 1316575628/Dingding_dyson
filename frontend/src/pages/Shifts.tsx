@@ -135,7 +135,7 @@ function Shifts() {
           </Button>
         }
       />
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
         <Table rowKey="id" columns={columns} dataSource={shifts} loading={loading} pagination={false} />
       </Card>
       <Modal title={editing ? '编辑班次' : '新建班次'} open={modalOpen} onOk={() => form.submit()} onCancel={() => setModalOpen(false)} destroyOnClose>

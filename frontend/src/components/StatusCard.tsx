@@ -1,42 +1,79 @@
-import { Card, Skeleton, Statistic } from 'antd'
+import { Card, Skeleton } from 'antd'
 
 interface StatusCardProps {
   title: string
   value: string | number
   loading?: boolean
-  valueStyle?: React.CSSProperties
-  suffix?: React.ReactNode
+  color?: string
   icon?: React.ReactNode
+  description?: string
 }
 
-function StatusCard({ title, value, loading, valueStyle, suffix, icon }: StatusCardProps) {
+function StatusCard({ title, value, loading, color = 'var(--gm-primary)', icon, description }: StatusCardProps) {
   return (
-    <Card bodyStyle={{ padding: 24 }} className="status-card">
+    <Card
+      bodyStyle={{ padding: 24, height: '100%' }}
+      style={{
+        height: '100%',
+        borderRadius: 20,
+        border: '1px solid var(--gm-outline-variant)',
+        background: '#fff',
+      }}
+    >
       {loading ? (
-        <Skeleton active paragraph={{ rows: 1 }} title={{ width: '60%' }} />
+        <Skeleton active paragraph={{ rows: 2 }} title={{ width: '60%' }} />
       ) : (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Statistic title={title} value={value} valueStyle={{ ...valueStyle, fontWeight: 700, fontSize: 28 }} />
-          {icon && (
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: 'var(--gm-surface-variant)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--gm-primary)',
-                fontSize: 20,
-              }}
-            >
-              {icon}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 14, color: 'var(--gm-on-surface-variant)', fontWeight: 500, marginBottom: 8 }}>
+                {title}
+              </div>
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color,
+                  letterSpacing: '-0.5px',
+                  lineHeight: 1.2,
+                }}
+              >
+                {value}
+              </div>
+            </div>
+            {icon && (
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: `${color}15`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color,
+                  fontSize: 22,
+                  flexShrink: 0,
+                }}
+              >
+                {icon}
+              </div>
+            )}
+          </div>
+          {description && (
+            <div style={{ marginTop: 16, fontSize: 13, color: 'var(--gm-on-surface-variant)', fontWeight: 500 }}>
+              {description}
             </div>
           )}
         </div>
       )}
-      {!loading && suffix && <div style={{ marginTop: 12 }}>{suffix}</div>}
     </Card>
   )
 }

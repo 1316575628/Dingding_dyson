@@ -1,4 +1,4 @@
-import { Layout as AntLayout, Menu, Avatar, Space } from 'antd'
+import { Layout as AntLayout, Menu, Avatar } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   DashboardOutlined,
@@ -26,7 +26,7 @@ function Layout() {
 
   return (
     <AntLayout style={{ minHeight: '100vh', background: 'var(--gm-background)' }}>
-      <Sider theme="light" width={256} style={{ background: 'var(--gm-surface)', position: 'fixed', height: '100vh', left: 0, top: 0 }}>
+      <Sider theme="light" width={256} style={{ background: 'var(--gm-surface)' }}>
         <div className="logo">钉钉打卡提醒</div>
         <Menu
           theme="light"
@@ -37,16 +37,14 @@ function Layout() {
           style={{ borderRight: 0, paddingTop: 8 }}
         />
       </Sider>
-      <AntLayout style={{ marginLeft: 256, background: 'var(--gm-background)' }}>
+      <AntLayout style={{ background: 'var(--gm-background)' }}>
         <Header style={{ padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--gm-on-surface)' }}>
             {activeLabel}
           </h2>
-          <Space>
-            <Avatar style={{ background: 'var(--gm-primary-container)', color: 'var(--gm-on-primary-container)' }}>
-              D
-            </Avatar>
-          </Space>
+          <Avatar style={{ background: 'var(--gm-primary-container)', color: 'var(--gm-on-primary-container)' }}>
+            D
+          </Avatar>
         </Header>
         <Content style={{ margin: 24 }}>
           <div className="site-layout-content">

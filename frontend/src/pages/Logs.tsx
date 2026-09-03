@@ -87,7 +87,7 @@ function Logs() {
   return (
     <div>
       <PageHeader title="推送日志" subtitle="查看打卡提醒发送记录与系统运行日志" />
-      <Card style={{ marginBottom: 20 }} bodyStyle={{ padding: 16 }}>
+      <Card style={{ marginBottom: 20, borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }} bodyStyle={{ padding: 16 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <Select
             placeholder="级别"
@@ -146,7 +146,7 @@ function Logs() {
           <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchLogs(1)}>查询</Button>
         </div>
       </Card>
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
         <Table
           rowKey="id"
           columns={columns}

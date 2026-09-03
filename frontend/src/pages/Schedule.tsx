@@ -95,7 +95,7 @@ function SchedulePage() {
   return (
     <div>
       <PageHeader title="排班日历" subtitle="点击日期设置当天的班次模板" />
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
         <Calendar
           value={currentMonth}
           onChange={setCurrentMonth}

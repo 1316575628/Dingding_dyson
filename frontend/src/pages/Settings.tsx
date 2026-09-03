@@ -108,10 +108,10 @@ function Settings() {
               </span>
             ),
             children: (
-              <Card>
+              <Card style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                   {renderFormItems(coreItems)}
-                  <Form.Item style={{ marginTop: 24 }}>
+                  <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
                     <Space>
                       <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
                         保存
@@ -133,7 +133,7 @@ function Settings() {
               </span>
             ),
             children: (
-              <Card title="导入排班 JSON">
+              <Card title="导入排班 JSON" style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
                 <p style={{ color: 'var(--gm-on-surface-variant)' }}>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名）</p>
                 <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
                 <Button type="primary" icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()}>
@@ -150,14 +150,14 @@ function Settings() {
               </span>
             ),
             children: (
-              <Card>
+              <Card style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
                 <p style={{ color: 'var(--gm-on-surface-variant)' }}>以下配置本期仅作预留，发送逻辑将在后续版本实现。</p>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                   <Divider orientation="left" style={{ color: 'var(--gm-on-surface-variant)', fontSize: 14, fontWeight: 600 }}>邮件通知</Divider>
                   {renderFormItems(emailItems)}
                   <Divider orientation="left" style={{ color: 'var(--gm-on-surface-variant)', fontSize: 14, fontWeight: 600 }}>短信通知</Divider>
                   {renderFormItems(smsItems)}
-                  <Form.Item style={{ marginTop: 24 }}>
+                  <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
                     <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
                       保存
                     </Button>
