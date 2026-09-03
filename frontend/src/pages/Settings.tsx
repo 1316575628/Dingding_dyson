@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { Form, Input, Button, Tabs, message, Card, Space, Divider } from 'antd'
-import { UploadOutlined, ReloadOutlined } from '@ant-design/icons'
+import { UploadOutlined, ReloadOutlined, SaveOutlined, SettingOutlined, ImportOutlined, NotificationOutlined } from '@ant-design/icons'
 import api from '../api'
+import PageHeader from '../components/PageHeader'
 
 function Settings() {
   const [form] = Form.useForm()
@@ -94,65 +95,80 @@ function Settings() {
     ))
 
   return (
-    <Tabs
-      defaultActiveKey="core"
-      items={[
-        {
-          key: 'core',
-          label: '核心配置',
-          children: (
-            <Card>
-              <Form form={form} layout="vertical" onFinish={handleSave}>
-                {renderFormItems(coreItems)}
-                <Form.Item>
-                  <Space>
-                    <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: 8 }}>
+    <div>
+      <PageHeader title="系统设置" subtitle="配置通知渠道、日志保留与数据导入" />
+      <Tabs
+        defaultActiveKey="core"
+        items={[
+          {
+            key: 'core',
+            label: (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <SettingOutlined /> 核心配置
+              </span>
+            ),
+            children: (
+              <Card>
+                <Form form={form} layout="vertical" onFinish={handleSave}>
+                  {renderFormItems(coreItems)}
+                  <Form.Item style={{ marginTop: 24 }}>
+                    <Space>
+                      <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
+                        保存
+                      </Button>
+                      <Button icon={<ReloadOutlined />} loading={reloadLoading} onClick={handleReload}>
+                        从 config.json 热重载
+                      </Button>
+                    </Space>
+                  </Form.Item>
+                </Form>
+              </Card>
+            ),
+          },
+          {
+            key: 'import',
+            label: (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ImportOutlined /> 数据导入
+              </span>
+            ),
+            children: (
+              <Card title="导入排班 JSON">
+                <p style={{ color: 'var(--gm-on-surface-variant)' }}>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名）</p>
+                <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+                <Button type="primary" icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()}>
+                  上传 data.json
+                </Button>
+              </Card>
+            ),
+          },
+          {
+            key: 'extend',
+            label: (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <NotificationOutlined /> 扩展通知（预留）
+              </span>
+            ),
+            children: (
+              <Card>
+                <p style={{ color: 'var(--gm-on-surface-variant)' }}>以下配置本期仅作预留，发送逻辑将在后续版本实现。</p>
+                <Form form={form} layout="vertical" onFinish={handleSave}>
+                  <Divider orientation="left" style={{ color: 'var(--gm-on-surface-variant)', fontSize: 14, fontWeight: 600 }}>邮件通知</Divider>
+                  {renderFormItems(emailItems)}
+                  <Divider orientation="left" style={{ color: 'var(--gm-on-surface-variant)', fontSize: 14, fontWeight: 600 }}>短信通知</Divider>
+                  {renderFormItems(smsItems)}
+                  <Form.Item style={{ marginTop: 24 }}>
+                    <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
                       保存
                     </Button>
-                    <Button icon={<ReloadOutlined />} loading={reloadLoading} onClick={handleReload} style={{ borderRadius: 8 }}>
-                      从 config.json 热重载
-                    </Button>
-                  </Space>
-                </Form.Item>
-              </Form>
-            </Card>
-          ),
-        },
-        {
-          key: 'import',
-          label: '数据导入',
-          children: (
-            <Card title="导入排班 JSON">
-              <p style={{ color: '#5f6368' }}>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名）</p>
-              <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
-              <Button type="primary" icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()} style={{ borderRadius: 8 }}>
-                上传 data.json
-              </Button>
-            </Card>
-          ),
-        },
-        {
-          key: 'extend',
-          label: '扩展通知（预留）',
-          children: (
-            <Card>
-              <p style={{ color: '#5f6368' }}>以下配置本期仅作预留，发送逻辑将在后续版本实现。</p>
-              <Form form={form} layout="vertical" onFinish={handleSave}>
-                <Divider orientation="left" style={{ color: '#5f6368', fontSize: 14 }}>邮件通知</Divider>
-                {renderFormItems(emailItems)}
-                <Divider orientation="left" style={{ color: '#5f6368', fontSize: 14 }}>短信通知</Divider>
-                {renderFormItems(smsItems)}
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: 8 }}>
-                    保存
-                  </Button>
-                </Form.Item>
-              </Form>
-            </Card>
-          ),
-        },
-      ]}
-    />
+                  </Form.Item>
+                </Form>
+              </Card>
+            ),
+          },
+        ]}
+      />
+    </div>
   )
 }
 

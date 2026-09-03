@@ -1,9 +1,17 @@
 import { useEffect, useState, useRef } from 'react'
 import { Card, Row, Col, Tag, Button, message, Skeleton } from 'antd'
-import { CheckCircleOutlined, PauseCircleOutlined, FieldTimeOutlined, CalendarOutlined } from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  PauseCircleOutlined,
+  FieldTimeOutlined,
+  CalendarOutlined,
+  ClockCircleOutlined,
+  DashboardOutlined,
+} from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api from '../api'
 import StatusCard from '../components/StatusCard'
+import PageHeader from '../components/PageHeader'
 
 interface Shift {
   id: number
@@ -72,7 +80,6 @@ function Dashboard() {
   }
 
   useEffect(() => {
-    // 首次进入：有缓存则静默刷新，无缓存才显示加载
     fetchData(!!data)
 
     intervalRef.current = window.setInterval(() => {
@@ -85,7 +92,6 @@ function Dashboard() {
   }, [])
 
   useEffect(() => {
-    // 客户端实时时钟，每秒更新
     const timer = window.setInterval(() => setNow(dayjs()), 1000)
     return () => window.clearInterval(timer)
   }, [])
@@ -105,16 +111,31 @@ function Dashboard() {
 
   return (
     <div>
+      <PageHeader
+        title="仪表盘"
+        subtitle="查看今日班次、打卡窗口状态和系统运行情况"
+        actions={
+          <Button
+            type={data?.skipped ? 'default' : 'primary'}
+            danger={!data?.skipped}
+            onClick={toggleSkip}
+          >
+            {data?.skipped ? '取消跳过今日' : '今日跳过'}
+          </Button>
+        }
+      />
+
       <Row gutter={[20, 20]}>
         <Col xs={24} sm={8}>
           <StatusCard
             title="今日班次"
             value={data?.shift?.name || '休息'}
             loading={showSkeleton}
-            valueStyle={{ color: data?.shift ? '#1a73e8' : '#5f6368' }}
+            valueStyle={{ color: data?.shift ? 'var(--gm-primary)' : 'var(--gm-on-surface-variant)' }}
+            icon={<DashboardOutlined />}
             suffix={
               data?.shift ? (
-                <Tag color={data.shift.color} style={{ marginTop: 4, fontSize: 13, borderRadius: 6 }}>
+                <Tag color={data.shift.color} style={{ fontSize: 13, borderRadius: 6 }}>
                   {data.shift.name}
                 </Tag>
               ) : null
@@ -126,16 +147,8 @@ function Dashboard() {
             title="上班窗口"
             value={data?.window === '上班打卡时间' ? '进行中' : '未开启'}
             loading={showSkeleton}
-            valueStyle={{ color: data?.window === '上班打卡时间' ? '#34a853' : '#5f6368' }}
-            suffix={
-              <FieldTimeOutlined
-                style={{
-                  color: data?.window === '上班打卡时间' ? '#34a853' : '#9aa0a6',
-                  fontSize: 16,
-                  marginTop: 4,
-                }}
-              />
-            }
+            valueStyle={{ color: data?.window === '上班打卡时间' ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)' }}
+            icon={<FieldTimeOutlined style={{ color: data?.window === '上班打卡时间' ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)' }} />}
           />
         </Col>
         <Col xs={24} sm={8}>
@@ -143,34 +156,26 @@ function Dashboard() {
             title="下班窗口"
             value={data?.window === '下班打卡时间' ? '进行中' : '未开启'}
             loading={showSkeleton}
-            valueStyle={{ color: data?.window === '下班打卡时间' ? '#34a853' : '#5f6368' }}
-            suffix={
-              <FieldTimeOutlined
-                style={{
-                  color: data?.window === '下班打卡时间' ? '#34a853' : '#9aa0a6',
-                  fontSize: 16,
-                  marginTop: 4,
-                }}
-              />
-            }
+            valueStyle={{ color: data?.window === '下班打卡时间' ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)' }}
+            icon={<ClockCircleOutlined style={{ color: data?.window === '下班打卡时间' ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)' }} />}
           />
         </Col>
       </Row>
 
       <Card
-        style={{ marginTop: 24, border: '1px solid #f1f3f4' }}
+        style={{ marginTop: 24, border: '1px solid var(--gm-outline-variant)' }}
         title={
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
-            <CalendarOutlined style={{ color: '#1a73e8' }} />
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+            <CalendarOutlined style={{ color: 'var(--gm-primary)' }} />
             详细信息
           </span>
         }
         loading={showSkeleton}
       >
         <Skeleton active loading={showSkeleton} paragraph={{ rows: 5 }} title={false}>
-          <div style={{ display: 'grid', gap: 14, color: '#202124' }}>
-            <InfoRow label="日期" value={data?.today} icon={<CalendarOutlined style={{ color: '#9aa0a6' }} />} />
-            <InfoRow label="当前时间" value={now.format('YYYY-MM-DD HH:mm:ss')} />
+          <div style={{ display: 'grid', gap: 14, color: 'var(--gm-on-surface)' }}>
+            <InfoRow label="日期" value={data?.today} icon={<CalendarOutlined style={{ color: 'var(--gm-on-surface-variant)' }} />} />
+            <InfoRow label="当前时间" value={now.format('YYYY-MM-DD HH:mm:ss')} icon={<ClockCircleOutlined style={{ color: 'var(--gm-on-surface-variant)' }} />} />
             <InfoRow
               label="班次"
               value={
@@ -188,7 +193,7 @@ function Dashboard() {
               value={
                 <Tag
                   icon={inWindow ? <CheckCircleOutlined /> : <PauseCircleOutlined />}
-                  color={inWindow ? '#34a853' : '#9aa0a6'}
+                  color={inWindow ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)'}
                   style={{ fontSize: 13, borderRadius: 6 }}
                 >
                   {data?.window}
@@ -198,14 +203,6 @@ function Dashboard() {
             <InfoRow label="上班状态（云端）" value={data?.clock_in_status || '未配置'} />
             <InfoRow label="下班状态（云端）" value={data?.clock_out_status || '未配置'} />
           </div>
-          <Button
-            type={data?.skipped ? 'default' : 'primary'}
-            danger={!data?.skipped}
-            onClick={toggleSkip}
-            style={{ marginTop: 24, borderRadius: 8, minWidth: 120 }}
-          >
-            {data?.skipped ? '取消跳过今日' : '今日跳过'}
-          </Button>
         </Skeleton>
       </Card>
     </div>
@@ -224,8 +221,8 @@ function InfoRow({
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 24 }}>
       {icon}
-      <span style={{ color: '#5f6368', minWidth: 140 }}>{label}：</span>
-      <span style={{ fontWeight: 500 }}>{value}</span>
+      <span style={{ color: 'var(--gm-on-surface-variant)', minWidth: 140, fontWeight: 500 }}>{label}：</span>
+      <span style={{ fontWeight: 600 }}>{value}</span>
     </div>
   )
 }

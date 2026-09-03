@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Table, Button, Modal, Form, Input, TimePicker, InputNumber, Switch, ColorPicker, message, Popconfirm, Card } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import api from '../api'
 import dayjs from 'dayjs'
+import PageHeader from '../components/PageHeader'
 
 interface Shift {
   id: number
@@ -88,14 +89,14 @@ function Shifts() {
   }
 
   const columns = [
-    { title: '名称', dataIndex: 'name', key: 'name' },
+    { title: '名称', dataIndex: 'name', key: 'name', render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
     {
       title: '颜色',
       dataIndex: 'color',
       key: 'color',
       width: 80,
       render: (color: string) => (
-        <div style={{ width: 24, height: 24, background: color, borderRadius: 6, border: '1px solid #e8eaed' }} />
+        <div style={{ width: 24, height: 24, background: color, borderRadius: 6, border: '1px solid var(--gm-outline)' }} />
       ),
     },
     { title: '上班时间', dataIndex: 'start_time', key: 'start_time' },
@@ -110,9 +111,13 @@ function Shifts() {
       width: 160,
       render: (_: any, record: Shift) => (
         <div style={{ display: 'flex', gap: 8 }}>
-          <Button type="link" size="small" onClick={() => openEdit(record)} style={{ padding: 0 }}>编辑</Button>
+          <Button type="link" icon={<EditOutlined />} size="small" onClick={() => openEdit(record)} style={{ padding: 0 }}>
+            编辑
+          </Button>
           <Popconfirm title="确定删除？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" danger size="small" style={{ padding: 0 }}>删除</Button>
+            <Button type="link" danger icon={<DeleteOutlined />} size="small" style={{ padding: 0 }}>
+              删除
+            </Button>
           </Popconfirm>
         </div>
       ),
@@ -121,25 +126,22 @@ function Shifts() {
 
   return (
     <div>
-      <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ margin: 0, fontWeight: 500, color: '#202124' }}>班次模板</h3>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} style={{ borderRadius: 8 }}>
-          新建班次
-        </Button>
-      </div>
+      <PageHeader
+        title="班次管理"
+        subtitle="管理班次模板，设置上下班时间与提醒规则"
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            新建班次
+          </Button>
+        }
+      />
       <Card bodyStyle={{ padding: 0 }}>
         <Table rowKey="id" columns={columns} dataSource={shifts} loading={loading} pagination={false} />
       </Card>
-      <Modal
-        title={editing ? '编辑班次' : '新建班次'}
-        open={modalOpen}
-        onOk={() => form.submit()}
-        onCancel={() => setModalOpen(false)}
-        destroyOnClose
-      >
+      <Modal title={editing ? '编辑班次' : '新建班次'} open={modalOpen} onOk={() => form.submit()} onCancel={() => setModalOpen(false)} destroyOnClose>
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-            <Input />
+            <Input placeholder="例如：早班" />
           </Form.Item>
           <Form.Item name="color" label="颜色" rules={[{ required: true }]}>
             <ColorPicker showText />

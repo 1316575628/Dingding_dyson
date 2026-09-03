@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Calendar, Modal, Select, message, Card } from 'antd'
+import { CalendarOutlined } from '@ant-design/icons'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import api from '../api'
+import PageHeader from '../components/PageHeader'
 
 interface Shift {
   id: number
@@ -80,9 +82,9 @@ function SchedulePage() {
           background: item.color,
           color: '#fff',
           fontSize: 12,
-          fontWeight: 500,
+          fontWeight: 600,
           textAlign: 'center',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
         }}
       >
         {item.shift_name}
@@ -91,16 +93,24 @@ function SchedulePage() {
   }
 
   return (
-    <Card bodyStyle={{ padding: 0 }}>
-      <Calendar
-        value={currentMonth}
-        onChange={setCurrentMonth}
-        onSelect={handleDateSelect}
-        cellRender={dateCellRender}
-        fullscreen
-      />
+    <div>
+      <PageHeader title="排班日历" subtitle="点击日期设置当天的班次模板" />
+      <Card bodyStyle={{ padding: 0 }}>
+        <Calendar
+          value={currentMonth}
+          onChange={setCurrentMonth}
+          onSelect={handleDateSelect}
+          cellRender={dateCellRender}
+          fullscreen
+        />
+      </Card>
       <Modal
-        title={`设置 ${selectedDate?.format('YYYY年MM月DD日')} 排班`}
+        title={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarOutlined style={{ color: 'var(--gm-primary)' }} />
+            设置 {selectedDate?.format('YYYY年MM月DD日')} 排班
+          </span>
+        }
         open={!!selectedDate}
         onOk={handleSave}
         onCancel={() => setSelectedDate(null)}
@@ -114,7 +124,7 @@ function SchedulePage() {
           options={shifts.map((s) => ({ label: s.name, value: s.id }))}
         />
       </Modal>
-    </Card>
+    </div>
   )
 }
 

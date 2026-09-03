@@ -1,4 +1,4 @@
-import { Layout as AntLayout, Menu } from 'antd'
+import { Layout as AntLayout, Menu, Avatar, Space } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   DashboardOutlined,
@@ -22,24 +22,31 @@ function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
 
+  const activeLabel = menuItems.find((item) => item.key === location.pathname)?.label || '钉钉打卡提醒'
+
   return (
-    <AntLayout style={{ minHeight: '100vh', background: '#f8f9fa' }}>
-      <Sider theme="light" width={220} style={{ background: '#fff' }}>
-        <div className="logo" style={{ color: '#1a73e8' }}>钉钉打卡提醒</div>
+    <AntLayout style={{ minHeight: '100vh', background: 'var(--gm-background)' }}>
+      <Sider theme="light" width={256} style={{ background: 'var(--gm-surface)', position: 'fixed', height: '100vh', left: 0, top: 0 }}>
+        <div className="logo">钉钉打卡提醒</div>
         <Menu
           theme="light"
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
-          style={{ borderRight: 0 }}
+          style={{ borderRight: 0, paddingTop: 8 }}
         />
       </Sider>
-      <AntLayout style={{ background: '#f8f9fa' }}>
-        <Header style={{ background: '#fff', padding: '0 28px', display: 'flex', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 500, color: '#202124' }}>
-            {menuItems.find((item) => item.key === location.pathname)?.label || '钉钉打卡提醒'}
+      <AntLayout style={{ marginLeft: 256, background: 'var(--gm-background)' }}>
+        <Header style={{ padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--gm-on-surface)' }}>
+            {activeLabel}
           </h2>
+          <Space>
+            <Avatar style={{ background: 'var(--gm-primary-container)', color: 'var(--gm-on-primary-container)' }}>
+              D
+            </Avatar>
+          </Space>
         </Header>
         <Content style={{ margin: 24 }}>
           <div className="site-layout-content">

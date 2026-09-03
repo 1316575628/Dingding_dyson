@@ -3,6 +3,7 @@ import { Table, Tag, Select, DatePicker, Input, Button, message, Card } from 'an
 import { SearchOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api from '../api'
+import PageHeader from '../components/PageHeader'
 
 interface LogItem {
   id: number
@@ -78,14 +79,15 @@ function Logs() {
     }},
     { title: '渠道', dataIndex: 'channel', key: 'channel', width: 100 },
     { title: '结果', dataIndex: 'result', key: 'result', width: 90, render: (v: string) => (
-      <Tag color={v === 'success' ? '#34a853' : '#ea4335'}>{v === 'success' ? '成功' : '失败'}</Tag>
+      <Tag color={v === 'success' ? 'success' : 'error'}>{v === 'success' ? '成功' : '失败'}</Tag>
     )},
     { title: '详情', dataIndex: 'detail', key: 'detail', ellipsis: true },
   ]
 
   return (
     <div>
-      <Card style={{ marginBottom: 20, background: '#fff' }} bodyStyle={{ padding: 16 }}>
+      <PageHeader title="推送日志" subtitle="查看打卡提醒发送记录与系统运行日志" />
+      <Card style={{ marginBottom: 20 }} bodyStyle={{ padding: 16 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <Select
             placeholder="级别"
