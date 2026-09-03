@@ -8,6 +8,9 @@ import {
   ClockCircleOutlined,
   DashboardOutlined,
   CloudOutlined,
+  SyncOutlined,
+  LoginOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api from '../api'
@@ -133,6 +136,10 @@ function Dashboard() {
   const showSkeleton = !data && fetching
   const progress = windowProgress(data?.shift || null, now)
 
+  // 下次检测倒计时：scheduler 每分钟第 0 秒触发（CronTrigger minute="*"）
+  const secondsLeft = 60 - now.second()
+  const countdownPercent = Math.round(((60 - secondsLeft) / 60) * 100)
+
   return (
     <div>
       <PageHeader
@@ -233,7 +240,7 @@ function Dashboard() {
         )}
       </SectionCard>
 
-      {/* 三列等高状态卡 + 进度条 */}
+      {/* 状态卡区：今日班次 / 班次进度 / 下次检测 */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={8}>
           <StatusCard
@@ -269,25 +276,51 @@ function Dashboard() {
         </Col>
         <Col xs={24} md={8}>
           <StatusCard
-            title="云端状态"
-            value={
-              data?.clock_in_status === null || data?.clock_in_status === undefined
-                ? '未配置'
-                : data.clock_in_status
-            }
-            loading={showSkeleton}
-            color={
-              data?.clock_in_status?.includes('未打卡')
-                ? 'var(--gm-error)'
-                : data?.clock_in_status?.includes('已打卡') || data?.clock_in_status?.includes('已提醒')
-                  ? 'var(--gm-success)'
-                  : 'var(--gm-on-surface-variant)'
-            }
-            icon={<CloudOutlined />}
-            description={`下班：${data?.clock_out_status || '未配置'}`}
-          />
+            title="下次检测"
+            value={`${secondsLeft} 秒后`}
+            color="var(--gm-primary)"
+            icon={<SyncOutlined spin={secondsLeft <= 5} />}
+            description="系统每分钟整点检测一次打卡状态"
+          >
+            <Progress
+              percent={countdownPercent}
+              showInfo={false}
+              strokeColor="#1a73e8"
+              trailColor="#e8eaed"
+              style={{ marginTop: 12, marginBottom: 0 }}
+            />
+          </StatusCard>
         </Col>
       </Row>
+
+      {/* 云端状态：大模块内上下班两个对等子模块 */}
+      <SectionCard
+        style={{ marginBottom: 24 }}
+        title={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CloudOutlined style={{ color: 'var(--gm-primary)' }} /> 云端状态
+          </span>
+        }
+      >
+        <Skeleton active loading={showSkeleton} paragraph={{ rows: 2 }} title={false}>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} md={12}>
+              <CloudStatusItem
+                icon={<LoginOutlined />}
+                label="上班打卡"
+                status={data?.clock_in_status || '未配置'}
+              />
+            </Col>
+            <Col xs={24} md={12}>
+              <CloudStatusItem
+                icon={<LogoutOutlined />}
+                label="下班打卡"
+                status={data?.clock_out_status || '未配置'}
+              />
+            </Col>
+          </Row>
+        </Skeleton>
+      </SectionCard>
 
       {/* 详细信息 */}
       <SectionCard
@@ -340,6 +373,80 @@ function Dashboard() {
           </div>
         </Skeleton>
       </SectionCard>
+    </div>
+  )
+}
+
+function CloudStatusItem({
+  icon,
+  label,
+  status,
+}: {
+  icon: React.ReactNode
+  label: string
+  status: string
+}) {
+  // 状态语义配色
+  const isError = status.includes('未打卡') || status.includes('失败')
+  const isSuccess = status.includes('已打卡') || status.includes('已提醒')
+  const tone = isError ? 'var(--gm-error)' : isSuccess ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)'
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 20,
+        padding: '20px 24px',
+        borderRadius: 12,
+        background: 'var(--gm-surface-variant)',
+        border: `1px solid var(--gm-outline-variant)`,
+        height: '100%',
+      }}
+    >
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          background: 'var(--gm-surface)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: tone,
+          fontSize: 26,
+          flexShrink: 0,
+          boxShadow: 'var(--shadow-1)',
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 14,
+            color: 'var(--gm-on-surface-variant)',
+            fontWeight: 500,
+            marginBottom: 4,
+          }}
+        >
+          {label}
+        </div>
+        <div
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            color: tone,
+            lineHeight: 1.2,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={status}
+        >
+          {status}
+        </div>
+      </div>
     </div>
   )
 }
