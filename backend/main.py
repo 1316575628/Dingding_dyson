@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, SessionLocal
 from routers import dashboard, shifts, schedule, logs, config, import_data, skip
-from scheduler import start_scheduler, scheduler
+from scheduler import start_scheduler, stop_scheduler, scheduler
 from seed import seed_data
 from migrations import run_migrations
 
@@ -18,9 +18,8 @@ async def lifespan(app: FastAPI):
     seed_data()
     start_scheduler()
     yield
-    # 关闭时停止 scheduler
-    if scheduler and scheduler.running:
-        scheduler.shutdown()
+    # 关闭时停止 scheduler 并释放文件锁
+    stop_scheduler()
 
 
 app = FastAPI(title="钉钉打卡提醒系统 Web API", lifespan=lifespan)

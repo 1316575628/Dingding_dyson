@@ -7,3 +7,4 @@ python-multipart>=0.0.9
 requests>=2.31.0
 apscheduler>=3.10.0
 loguru>=0.7.0
+filelock>=3.13.0

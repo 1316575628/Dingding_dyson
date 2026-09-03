@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import time
 
 from database import get_db
@@ -10,15 +11,30 @@ from models import ShiftTemplate
 router = APIRouter(prefix="/shifts", tags=["shifts"])
 
 
+def _validate_hhmm(value: str | None) -> str | None:
+    if value is None:
+        return value
+    try:
+        time.fromisoformat(value)
+    except ValueError:
+        raise ValueError("时间格式必须为 HH:MM（如 09:00）")
+    return value
+
+
 class ShiftCreate(BaseModel):
     name: str
     color: str = "#1890ff"
-    start_time: str
-    end_time: str
+    start_time: str | None = None
+    end_time: str | None = None
     remind_before_min: int = 15
     remind_after_min: int = 30
     overtime_min: int = 0
     is_rest: bool = False
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def check_time_format(cls, v):
+        return _validate_hhmm(v)
 
 
 class ShiftUpdate(BaseModel):
@@ -30,6 +46,11 @@ class ShiftUpdate(BaseModel):
     remind_after_min: int | None = None
     overtime_min: int | None = None
     is_rest: bool | None = None
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def check_time_format(cls, v):
+        return _validate_hhmm(v)
 
 
 class ShiftOut(BaseModel):
@@ -133,6 +154,10 @@ def delete_shift(shift_id: int, db: Session = Depends(get_db)):
     shift = db.query(ShiftTemplate).filter(ShiftTemplate.id == shift_id).first()
     if not shift:
         raise HTTPException(status_code=404, detail="班次不存在")
-    db.delete(shift)
-    db.commit()
+    try:
+        db.delete(shift)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="该班次已被排班使用，无法删除")
     return {"message": "删除成功"}

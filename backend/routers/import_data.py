@@ -1,26 +1,43 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date
 import json
 import re
 
 from database import get_db
-from models import ShiftTemplate, Schedule, PushLog
+from models import ShiftTemplate, Schedule
 from services.push import log_info
 
 router = APIRouter(prefix="/import", tags=["import"])
 
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
 
 @router.post("/schedule-json")
 def import_schedule_json(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    content = file.file.read().decode("utf-8")
+    # 限制文件大小，防止恶意大文件撑爆内存
+    raw = file.file.read(MAX_FILE_SIZE + 1)
+    if len(raw) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="文件大小超过 5MB")
+
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="文件必须使用 UTF-8 编码")
+
     try:
         data = json.loads(content)
     except json.JSONDecodeError:
         # 兼容原 data.json 中可能出现的 trailing comma
         cleaned = re.sub(r",\s*}", "}", content)
         cleaned = re.sub(r",\s*]", "]", cleaned)
-        data = json.loads(cleaned)
+        try:
+            data = json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"JSON 解析失败: {e}")
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="JSON 顶层必须是对象（年 → 月 → 日 → 班次名）")
 
     created_shifts = 0
     imported_days = 0
@@ -41,17 +58,43 @@ def import_schedule_json(file: UploadFile = File(...), db: Session = Depends(get
         created_shifts += 1
 
     for year_str, months in data.items():
-        year = int(year_str)
+        try:
+            year = int(year_str)
+        except (ValueError, TypeError):
+            skipped_days += 1
+            continue
+        if not isinstance(months, dict):
+            skipped_days += 1
+            continue
+
         for month_str, days in months.items():
-            month = int(month_str)
+            try:
+                month = int(month_str)
+            except (ValueError, TypeError):
+                skipped_days += 1
+                continue
+            if not isinstance(days, dict):
+                skipped_days += 1
+                continue
+
             for day_str, shift_name in days.items():
-                day = int(day_str)
+                try:
+                    day = int(day_str)
+                except (ValueError, TypeError):
+                    skipped_days += 1
+                    continue
 
                 # 只接受字符串班次名；过滤明显不是班次的异常值（如 "25/4/9"）
                 if not isinstance(shift_name, str):
                     skipped_days += 1
                     continue
                 if not re.match(r"^[A-Za-z0-9\u4e00-\u9fa5]+$", shift_name):
+                    skipped_days += 1
+                    continue
+
+                try:
+                    d = date(year, month, day)
+                except ValueError:
                     skipped_days += 1
                     continue
 
@@ -74,7 +117,6 @@ def import_schedule_json(file: UploadFile = File(...), db: Session = Depends(get
                         db.flush()
                         created_shifts += 1
 
-                d = date(year, month, day)
                 existing = db.query(Schedule).filter(Schedule.date == d).first()
                 if existing:
                     existing.shift_template_id = shift.id
