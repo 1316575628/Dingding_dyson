@@ -23,6 +23,7 @@ function Shifts() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Shift | null>(null)
   const [form] = Form.useForm()
+  const isRest = !!Form.useWatch('is_rest', form)
 
   const fetchShifts = async () => {
     setLoading(true)
@@ -149,21 +150,37 @@ function Shifts() {
           <Form.Item name="is_rest" label="休息类型" valuePropName="checked">
             <Switch />
           </Form.Item>
-          <Form.Item name="start_time" label="上班时间">
-            <TimePicker format="HH:mm" style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="end_time" label="下班时间">
-            <TimePicker format="HH:mm" style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="remind_before_min" label="上班提醒提前量（分钟）">
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="remind_after_min" label="下班提醒延后量（分钟）">
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="overtime_min" label="加班时长（分钟）">
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
+          {!isRest && (
+            <>
+              <Form.Item
+                name="start_time"
+                label="上班时间"
+                rules={[{ required: true, message: '非休息班次必须填写上班时间' }]}
+              >
+                <TimePicker format="HH:mm" style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name="end_time"
+                label="下班时间"
+                rules={[{ required: true, message: '非休息班次必须填写下班时间' }]}
+              >
+                <TimePicker format="HH:mm" style={{ width: '100%' }} />
+              </Form.Item>
+            </>
+          )}
+          {!isRest && (
+            <>
+              <Form.Item name="remind_before_min" label="上班提醒提前量（分钟）">
+                <InputNumber min={0} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item name="remind_after_min" label="下班提醒延后量（分钟）">
+                <InputNumber min={0} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item name="overtime_min" label="加班时长（分钟）">
+                <InputNumber min={0} style={{ width: '100%' }} />
+              </Form.Item>
+            </>
+          )}
         </Form>
       </Modal>
     </div>

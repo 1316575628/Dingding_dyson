@@ -8,6 +8,7 @@ function Settings() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [reloadLoading, setReloadLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchConfig = async () => {
@@ -51,6 +52,8 @@ function Settings() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (importing) return
+    setImporting(true)
     const formData = new FormData()
     formData.append('file', file)
     try {
@@ -58,37 +61,39 @@ function Settings() {
       message.success(`导入成功：创建 ${res.data.created_shifts} 个班次，导入 ${res.data.imported_days} 天`)
     } catch (err) {
       message.error('导入失败')
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
   const coreItems = [
-    { name: 'API_KEY', label: '维格表 API Key' },
-    { name: 'DST_ID', label: '维格表 DST ID' },
-    { name: 'fs_webhook', label: '飞书 Webhook' },
-    { name: 'fw_webhook', label: 'fwalert Webhook' },
-    { name: 'log_retention_days', label: '日志保留天数' },
+    { name: 'API_KEY', label: '维格表 API Key', extra: '用于查询云端打卡记录的密钥' },
+    { name: 'DST_ID', label: '维格表 DST ID', extra: '维格表中数据表 ID' },
+    { name: 'fs_webhook', label: '飞书 Webhook', extra: '飞书机器人推送地址' },
+    { name: 'fw_webhook', label: 'fwalert Webhook', extra: 'fwalert 推送地址，消息拼接在 URL 后' },
+    { name: 'log_retention_days', label: '日志保留天数', extra: '超过该天数的日志会在每日凌晨自动清理' },
   ]
 
   const emailItems = [
-    { name: 'email_smtp_host', label: 'SMTP 服务器' },
-    { name: 'email_smtp_port', label: 'SMTP 端口' },
-    { name: 'email_username', label: '邮箱账号' },
-    { name: 'email_password', label: '邮箱密码/授权码' },
-    { name: 'email_to', label: '收件人' },
+    { name: 'email_smtp_host', label: 'SMTP 服务器', extra: '如 smtp.qq.com' },
+    { name: 'email_smtp_port', label: 'SMTP 端口', extra: '通常为 465 或 587' },
+    { name: 'email_username', label: '邮箱账号', extra: '发件邮箱地址' },
+    { name: 'email_password', label: '邮箱密码/授权码', extra: '服务商生成的授权码，非登录密码' },
+    { name: 'email_to', label: '收件人', extra: '接收提醒的邮箱地址' },
   ]
 
   const smsItems = [
-    { name: 'sms_provider', label: '短信服务商' },
-    { name: 'sms_api_key', label: '短信 API Key' },
+    { name: 'sms_provider', label: '短信服务商', extra: '预留字段' },
+    { name: 'sms_api_key', label: '短信 API Key', extra: '预留字段' },
   ]
 
-  const renderFormItems = (items: { name: string; label: string }[]) =>
+  const renderFormItems = (items: { name: string; label: string; extra?: string }[]) =>
     items.map((item) => (
-      <Form.Item key={item.name} name={item.name} label={item.label}>
-        <Input />
+      <Form.Item key={item.name} name={item.name} label={item.label} extra={item.extra}>
+        <Input allowClear />
       </Form.Item>
     ))
 
@@ -132,9 +137,9 @@ function Settings() {
             ),
             children: (
               <Card title="导入排班 JSON" style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
-                <p style={{ color: 'var(--gm-on-surface-variant)' }}>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名）</p>
+                <p style={{ color: 'var(--gm-on-surface-variant)' }}>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名），文件大小不超过 5MB</p>
                 <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
-                <Button type="primary" icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()}>
+                <Button type="primary" icon={<UploadOutlined />} loading={importing} onClick={() => fileInputRef.current?.click()}>
                   上传 data.json
                 </Button>
               </Card>

@@ -78,22 +78,37 @@ body {
 
 /* 页面内容区 */
 .site-layout-content {
-  background: var(--gm-surface);
-  padding: var(--space-6);
+  background: transparent;
+  padding: 0;
   border-radius: var(--radius-xl);
-  min-height: calc(100vh - 128px);
-  box-shadow: var(--shadow-1);
-  animation: fadeIn 0.3s ease-out;
+  min-height: calc(100vh - 64px - 48px);
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-@keyframes fadeIn {
+/* 页面切换淡入过渡（300ms） */
+.page-fade {
+  animation: pageFade 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes pageFade {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 尊重系统减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .page-fade,
+  .site-layout-content {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
@@ -106,6 +121,17 @@ body {
   letter-spacing: 0.25px;
   background: var(--gm-surface);
   border-bottom: 1px solid var(--gm-outline-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 64px;
+}
+
+.logo-collapsed {
+  padding: var(--space-5) var(--space-4);
+  justify-content: center;
 }
 
 /* 页面标题区 */
@@ -404,11 +430,18 @@ body {
   border-radius: var(--radius-sm) !important;
 }
 
-/* 消息提示 */
+/* 消息提示：底部 Snackbar 风格 */
+.ant-message {
+  top: auto !important;
+  bottom: 24px !important;
+}
+
 .ant-message-notice-content {
-  border-radius: var(--radius-md) !important;
+  border-radius: var(--radius-sm) !important;
   box-shadow: var(--shadow-3) !important;
   font-weight: 500;
+  background: var(--gm-on-surface);
+  color: #fff;
 }
 
 /* 滚动条 */
@@ -430,10 +463,56 @@ body {
   background: var(--gm-secondary);
 }
 
+/* 日历：Google Calendar 风格单元格 */
+.gm-calendar-cell {
+  height: 100%;
+  min-height: 88px;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.gm-calendar-cell:hover {
+  background: var(--gm-surface-variant);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.gm-calendar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.gm-calendar-shift-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gm-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.gm-calendar-today {
+  background: var(--gm-primary-container);
+  border-radius: var(--radius-full);
+  color: var(--gm-on-primary-container) !important;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600 !important;
+}
+
 /* 响应式辅助 */
 @media (max-width: 768px) {
   .site-layout-content {
-    padding: var(--space-4);
+    padding: 0;
   }
 
   .page-header {

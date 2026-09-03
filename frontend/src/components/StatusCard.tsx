@@ -7,9 +7,10 @@ interface StatusCardProps {
   color?: string
   icon?: React.ReactNode
   description?: string
+  children?: React.ReactNode
 }
 
-function StatusCard({ title, value, loading, color = 'var(--gm-primary)', icon, description }: StatusCardProps) {
+function StatusCard({ title, value, loading, color = 'var(--gm-primary)', icon, description, children }: StatusCardProps) {
   return (
     <Card
       bodyStyle={{ padding: 24, height: '100%' }}
@@ -72,6 +73,7 @@ function StatusCard({ title, value, loading, color = 'var(--gm-primary)', icon, 
               {description}
             </div>
           )}
+          {children && <div style={{ marginTop: 4 }}>{children}</div>}
         </div>
       )}
     </Card>

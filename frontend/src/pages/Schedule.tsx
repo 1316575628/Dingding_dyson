@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Calendar, Modal, message, Card } from 'antd'
-import { CalendarOutlined, CloseOutlined } from '@ant-design/icons'
+import { Calendar, Drawer, message, Card, Button } from 'antd'
+import { LeftOutlined, RightOutlined, CloseOutlined, CalendarOutlined } from '@ant-design/icons'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import api from '../api'
@@ -85,24 +85,16 @@ function SchedulePage() {
     await handleSelectShift(null)
   }
 
+  // Google Calendar 风格单元格：圆点标记班次
   const dateCellRender = (date: Dayjs) => {
     const item = scheduleMap[date.format('YYYY-MM-DD')]
     if (!item) return null
     return (
-      <div
-        style={{
-          marginTop: 6,
-          padding: '4px 8px',
-          borderRadius: 8,
-          background: item.color,
-          color: '#fff',
-          fontSize: 12,
-          fontWeight: 600,
-          textAlign: 'center',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
-        }}
-      >
-        {item.shift_name}
+      <div className="gm-calendar-cell">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
+          <span className="gm-calendar-dot" style={{ background: item.color }} />
+          <span className="gm-calendar-shift-name">{item.shift_name}</span>
+        </div>
       </div>
     )
   }
@@ -113,15 +105,49 @@ function SchedulePage() {
     <div>
       <PageHeader title="排班日历" subtitle="点击日期快速设置班次" />
       <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
+        {/* 自定义月份切换头：Google Calendar 风格左右箭头 */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '16px 24px',
+            borderBottom: '1px solid var(--gm-outline-variant)',
+          }}
+        >
+          <Button
+            shape="circle"
+            icon={<LeftOutlined />}
+            onClick={() => setCurrentMonth(currentMonth.subtract(1, 'month'))}
+            aria-label="上个月"
+          />
+          <Button
+            shape="circle"
+            icon={<RightOutlined />}
+            onClick={() => setCurrentMonth(currentMonth.add(1, 'month'))}
+            aria-label="下个月"
+          />
+          <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--gm-on-surface)', marginLeft: 8 }}>
+            {currentMonth.format('YYYY年M月')}
+          </div>
+          <Button
+            style={{ marginLeft: 'auto' }}
+            onClick={() => setCurrentMonth(dayjs())}
+          >
+            今天
+          </Button>
+        </div>
         <Calendar
           value={currentMonth}
           onChange={setCurrentMonth}
           onSelect={handleDateSelect}
           cellRender={dateCellRender}
           fullscreen
+          headerRender={() => null}
         />
       </Card>
-      <Modal
+      {/* 抽屉选择班次 */}
+      <Drawer
         title={
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CalendarOutlined style={{ color: 'var(--gm-primary)' }} />
@@ -129,10 +155,9 @@ function SchedulePage() {
           </span>
         }
         open={!!selectedDate}
-        onCancel={() => setSelectedDate(null)}
-        footer={null}
+        onClose={() => setSelectedDate(null)}
         width={440}
-        bodyStyle={{ padding: '24px 32px 32px' }}
+        styles={{ body: { padding: '24px 32px 32px' } }}
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
           {shifts.map((shift) => {
@@ -200,7 +225,7 @@ function SchedulePage() {
             <span style={{ fontSize: 12, color: 'var(--gm-on-surface-variant)' }}>清除班次</span>
           </button>
         </div>
-      </Modal>
+      </Drawer>
     </div>
   )
 }

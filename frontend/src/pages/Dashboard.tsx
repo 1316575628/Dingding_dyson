@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Row, Col, Tag, Button, message, Skeleton } from 'antd'
+import { Row, Col, Tag, Button, message, Skeleton, Progress } from 'antd'
 import {
   CheckCircleOutlined,
   PauseCircleOutlined,
@@ -7,6 +7,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   DashboardOutlined,
+  CloudOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api from '../api'
@@ -49,6 +50,20 @@ function saveCache(data: DashboardData) {
   } catch {
     // ignore
   }
+}
+
+/** 计算打卡窗口进度（0-100），基于上班时间与提醒提前量 */
+function windowProgress(shift: Shift | null, now: dayjs.Dayjs): number | null {
+  if (!shift || !shift.start_time || !shift.end_time || shift.is_rest) return null
+  const [sh, sm] = shift.start_time.split(':').map(Number)
+  const [eh, em] = shift.end_time.split(':').map(Number)
+  let start = now.hour(sh).minute(sm).second(0)
+  let end = now.hour(eh).minute(em).second(0)
+  if (end.isBefore(start) || end.isSame(start)) end = end.add(1, 'day')
+  if (now.isBefore(start.subtract(2, 'hour'))) return 0
+  const total = end.diff(start, 'minute')
+  const passed = now.diff(start, 'minute')
+  return Math.min(100, Math.max(0, Math.round((passed / Math.max(total, 1)) * 100)))
 }
 
 function Dashboard() {
@@ -116,6 +131,7 @@ function Dashboard() {
 
   const inWindow = data?.window === '上班打卡时间' || data?.window === '下班打卡时间'
   const showSkeleton = !data && fetching
+  const progress = windowProgress(data?.shift || null, now)
 
   return (
     <div>
@@ -135,12 +151,25 @@ function Dashboard() {
         }
       />
 
-      {/* Hero 状态卡 */}
+      {/* Hero 状态卡：极淡渐变色块 */}
       <SectionCard style={{ marginBottom: 24 }}>
         {showSkeleton ? (
           <Skeleton active paragraph={{ rows: 2 }} title={{ width: '40%' }} />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 24,
+              background: 'linear-gradient(135deg, rgba(26,115,232,0.04) 0%, rgba(52,168,83,0.04) 100%)',
+              borderRadius: 12,
+              padding: 24,
+              margin: -24,
+              width: 'calc(100% + 48px)',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               <div
                 style={{
@@ -166,14 +195,14 @@ function Dashboard() {
                 </div>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   {data?.shift && (
-                    <Tag color={data.shift.color} style={{ fontSize: 13, borderRadius: 6, marginRight: 0 }}>
+                    <Tag color={data.shift.color} style={{ fontSize: 13, borderRadius: 999, marginRight: 0 }}>
                       {data.shift.start_time} - {data.shift.end_time}
                     </Tag>
                   )}
                   <Tag
                     icon={inWindow ? <CheckCircleOutlined /> : <PauseCircleOutlined />}
                     color={inWindow ? 'success' : 'default'}
-                    style={{ fontSize: 13, borderRadius: 6, marginRight: 0 }}
+                    style={{ fontSize: 13, borderRadius: 999, marginRight: 0 }}
                   >
                     {data?.window}
                   </Tag>
@@ -184,7 +213,16 @@ function Dashboard() {
               <div style={{ fontSize: 14, color: 'var(--gm-on-surface-variant)', fontWeight: 500, marginBottom: 4 }}>
                 当前时间
               </div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--gm-on-surface)', letterSpacing: '-1px', lineHeight: 1.2 }}>
+              <div
+                style={{
+                  fontSize: 36,
+                  fontWeight: 700,
+                  color: 'var(--gm-on-surface)',
+                  letterSpacing: '-1px',
+                  lineHeight: 1.2,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
                 {now.format('HH:mm:ss')}
               </div>
               <div style={{ fontSize: 14, color: 'var(--gm-on-surface-variant)', fontWeight: 500, marginTop: 4 }}>
@@ -195,7 +233,7 @@ function Dashboard() {
         )}
       </SectionCard>
 
-      {/* 三列等高状态卡 */}
+      {/* 三列等高状态卡 + 进度条 */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={8}>
           <StatusCard
@@ -209,37 +247,75 @@ function Dashboard() {
         </Col>
         <Col xs={24} md={8}>
           <StatusCard
-            title="上班窗口"
-            value={data?.window === '上班打卡时间' ? '进行中' : '未开启'}
+            title="班次进度"
+            value={progress === null ? '—' : `${progress}%`}
             loading={showSkeleton}
-            color={data?.window === '上班打卡时间' ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)'}
+            color="var(--gm-primary)"
             icon={<FieldTimeOutlined />}
-            description={data?.window === '上班打卡时间' ? '当前在打卡时间范围内' : '不在上班打卡时间'}
-          />
+            description={
+              progress === null ? '无有效班次' : progress >= 100 ? '班次已结束' : '当前班次进行中'
+            }
+          >
+            {progress !== null && (
+              <Progress
+                percent={progress}
+                showInfo={false}
+                strokeColor={{ from: '#1a73e8', to: '#34a853' }}
+                trailColor="#e8eaed"
+                style={{ marginTop: 12, marginBottom: 0 }}
+              />
+            )}
+          </StatusCard>
         </Col>
         <Col xs={24} md={8}>
           <StatusCard
-            title="下班窗口"
-            value={data?.window === '下班打卡时间' ? '进行中' : '未开启'}
+            title="云端状态"
+            value={
+              data?.clock_in_status === null || data?.clock_in_status === undefined
+                ? '未配置'
+                : data.clock_in_status
+            }
             loading={showSkeleton}
-            color={data?.window === '下班打卡时间' ? 'var(--gm-success)' : 'var(--gm-on-surface-variant)'}
-            icon={<ClockCircleOutlined />}
-            description={data?.window === '下班打卡时间' ? '当前在打卡时间范围内' : '不在下班打卡时间'}
+            color={
+              data?.clock_in_status?.includes('未打卡')
+                ? 'var(--gm-error)'
+                : data?.clock_in_status?.includes('已打卡') || data?.clock_in_status?.includes('已提醒')
+                  ? 'var(--gm-success)'
+                  : 'var(--gm-on-surface-variant)'
+            }
+            icon={<CloudOutlined />}
+            description={`下班：${data?.clock_out_status || '未配置'}`}
           />
         </Col>
       </Row>
 
       {/* 详细信息 */}
-      <SectionCard title={<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CalendarOutlined style={{ color: 'var(--gm-primary)' }} /> 详细信息</span>}>
+      <SectionCard
+        title={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarOutlined style={{ color: 'var(--gm-primary)' }} /> 详细信息
+          </span>
+        }
+      >
         <Skeleton active loading={showSkeleton} paragraph={{ rows: 5 }} title={false}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px 48px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '20px 48px',
+            }}
+          >
             <InfoRow label="日期" value={data?.today} icon={<CalendarOutlined />} />
-            <InfoRow label="当前时间" value={now.format('YYYY-MM-DD HH:mm:ss')} icon={<ClockCircleOutlined />} />
+            <InfoRow
+              label="当前时间"
+              value={now.format('YYYY-MM-DD HH:mm:ss')}
+              icon={<ClockCircleOutlined />}
+            />
             <InfoRow
               label="班次"
               value={
                 data?.shift ? (
-                  <Tag color={data.shift.color} style={{ fontSize: 13, borderRadius: 6 }}>
+                  <Tag color={data.shift.color} style={{ fontSize: 13, borderRadius: 999 }}>
                     {data.shift.name}
                   </Tag>
                 ) : (
@@ -250,7 +326,11 @@ function Dashboard() {
             <InfoRow
               label="打卡窗口"
               value={
-                <Tag icon={inWindow ? <CheckCircleOutlined /> : <PauseCircleOutlined />} color={inWindow ? 'success' : 'default'} style={{ fontSize: 13, borderRadius: 6 }}>
+                <Tag
+                  icon={inWindow ? <CheckCircleOutlined /> : <PauseCircleOutlined />}
+                  color={inWindow ? 'success' : 'default'}
+                  style={{ fontSize: 13, borderRadius: 999 }}
+                >
                   {data?.window}
                 </Tag>
               }
@@ -268,7 +348,9 @@ function InfoRow({ label, value, icon }: { label: string; value: React.ReactNode
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 28 }}>
       {icon && <span style={{ color: 'var(--gm-on-surface-variant)', fontSize: 16 }}>{icon}</span>}
-      <span style={{ color: 'var(--gm-on-surface-variant)', minWidth: 80, fontWeight: 500, fontSize: 14 }}>{label}</span>
+      <span style={{ color: 'var(--gm-on-surface-variant)', minWidth: 80, fontWeight: 500, fontSize: 14 }}>
+        {label}
+      </span>
       <span style={{ color: 'var(--gm-on-surface)', fontWeight: 600, fontSize: 14 }}>{value}</span>
     </div>
   )

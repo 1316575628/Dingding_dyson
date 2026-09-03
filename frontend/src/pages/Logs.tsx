@@ -141,9 +141,13 @@ function Logs() {
             placeholder="关键词"
             value={filters.keyword}
             onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
+            onPressEnter={() => fetchLogs(1)}
             style={{ width: 200 }}
+            allowClear
           />
-          <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchLogs(1)}>查询</Button>
+          <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchLogs(1)}>
+            查询
+          </Button>
         </div>
       </Card>
       <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
