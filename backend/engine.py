@@ -1,4 +1,4 @@
-from datetime import datetime, date, timedelta, time
+from datetime import datetime, date, timedelta
 import requests
 from sqlalchemy.orm import Session
 
@@ -9,19 +9,31 @@ from services.push import push_all, log_info, log_warn, log_error
 
 
 def should_notify(shift, now: datetime) -> str:
-    """返回 work / worked / 空串"""
+    """返回 work / worked / 空串。
+
+    使用 datetime 对象比较，正确处理跨天班次（如夜班、remind_before 跨午夜）。
+    """
     if shift.is_rest:
         return ""
-    now_t = now.time()
+    if shift.start_time is None or shift.end_time is None:
+        return ""
+
     today = now.date()
     start_dt = datetime.combine(today, shift.start_time)
-    end_dt = datetime.combine(today, shift.end_time) + timedelta(minutes=shift.overtime_min)
-    start_window = (start_dt - timedelta(minutes=shift.remind_before_min)).time()
-    end_window = (end_dt + timedelta(minutes=shift.remind_after_min)).time()
 
-    if start_window <= now_t < shift.start_time:
+    # 如果下班时间早于上班时间，视为跨天夜班
+    end_base = today + timedelta(days=1) if shift.end_time < shift.start_time else today
+    end_dt = datetime.combine(end_base, shift.end_time) + timedelta(minutes=shift.overtime_min)
+
+    work_start = start_dt - timedelta(minutes=shift.remind_before_min)
+    work_end = start_dt
+
+    worked_start = end_dt
+    worked_end = end_dt + timedelta(minutes=shift.remind_after_min)
+
+    if work_start <= now < work_end:
         return "work"
-    if end_dt.time() < now_t <= end_window:
+    if worked_start < now <= worked_end:
         return "worked"
     return ""
 
@@ -32,7 +44,9 @@ def query_vika_status(api_key: str, dst_id: str, row: int) -> str:
     r = requests.get(url, headers=headers, params={"pageSize": 2}, timeout=5)
     r.raise_for_status()
     records = r.json()["data"]["records"]
-    return records[row - 1]["fields"]["打卡检测"]
+    if not records or row > len(records):
+        raise ValueError(f"维格表记录不足，请求第 {row} 行，实际 {len(records)} 行")
+    return records[row - 1]["fields"].get("打卡检测", "")
 
 
 def is_skipped_today(db: Session) -> bool:
@@ -96,8 +110,8 @@ def run_check():
         if action == "work":
             local_status = get_config_value(db, "clockInDetection") or "上班未打卡"
             log_info(db, "system", f"本地上班状态：{local_status}")
-            if local_status != "上班未打卡":
-                log_info(db, "system", "本地已记录上班打卡，跳过推送")
+            if local_status not in ("上班未打卡", ""):
+                log_info(db, "system", "本地已记录上班打卡或已提醒，跳过推送")
                 return
             try:
                 status = query_vika_status(api_key, dst_id, 1)
@@ -108,15 +122,16 @@ def run_check():
             if status == "上班未打卡":
                 log_info(db, "system", "云端显示上班未打卡，准备推送提醒")
                 push_all(db, "work", "上班打卡咯", fs_webhook, fw_webhook)
+                set_config_value(db, "clockInDetection", "已提醒")
             else:
                 log_info(db, "system", "云端显示上班已打卡，无需推送")
-            set_config_value(db, "clockInDetection", status)
+                set_config_value(db, "clockInDetection", status)
 
         elif action == "worked":
             local_status = get_config_value(db, "clockOutDetection") or "下班未打卡"
             log_info(db, "system", f"本地下班状态：{local_status}")
-            if local_status != "下班未打卡":
-                log_info(db, "system", "本地已记录下班打卡，跳过推送")
+            if local_status not in ("下班未打卡", ""):
+                log_info(db, "system", "本地已记录下班打卡或已提醒，跳过推送")
                 return
             try:
                 status = query_vika_status(api_key, dst_id, 2)
@@ -127,9 +142,10 @@ def run_check():
             if status == "下班未打卡":
                 log_info(db, "system", "云端显示下班未打卡，准备推送提醒")
                 push_all(db, "worked", "下班打卡咯", fs_webhook, fw_webhook)
+                set_config_value(db, "clockOutDetection", "已提醒")
             else:
                 log_info(db, "system", "云端显示下班已打卡，无需推送")
-            set_config_value(db, "clockOutDetection", status)
+                set_config_value(db, "clockOutDetection", status)
 
     except Exception as e:
         log_error(db, "system", f"打卡检查异常: {e}")

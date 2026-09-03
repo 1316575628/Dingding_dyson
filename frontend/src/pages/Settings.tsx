@@ -54,9 +54,7 @@ function Settings() {
     const formData = new FormData()
     formData.append('file', file)
     try {
-      const res = await api.post('/import/schedule-json', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const res = await api.post('/import/schedule-json', formData)
       message.success(`导入成功：创建 ${res.data.created_shifts} 个班次，导入 ${res.data.imported_days} 天`)
     } catch (err) {
       message.error('导入失败')

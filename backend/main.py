@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import FastAPI
@@ -8,7 +9,21 @@ from scheduler import start_scheduler, scheduler
 from seed import seed_data
 from migrations import run_migrations
 
-app = FastAPI(title="钉钉打卡提醒系统 Web API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 只在进程启动时执行一次：建表、迁移、初始化数据、启动 scheduler
+    Base.metadata.create_all(bind=engine)
+    run_migrations(engine)
+    seed_data()
+    start_scheduler()
+    yield
+    # 关闭时停止 scheduler
+    if scheduler and scheduler.running:
+        scheduler.shutdown()
+
+
+app = FastAPI(title="钉钉打卡提醒系统 Web API", lifespan=lifespan)
 
 origins = [
     "http://localhost",
@@ -25,18 +40,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 创建数据库表
-Base.metadata.create_all(bind=engine)
-
-# 自动迁移：补齐新增字段
-run_migrations(engine)
-
-# 初始化默认数据
-seed_data()
-
-# 启动定时任务
-start_scheduler()
 
 # 注册路由
 app.include_router(dashboard.router, prefix="/api")
@@ -55,6 +58,7 @@ def read_root():
 
 @app.get("/health")
 def health_check():
+    db = None
     db_ok = False
     try:
         db = SessionLocal()
@@ -63,7 +67,8 @@ def health_check():
     except Exception:
         db_ok = False
     finally:
-        db.close()
+        if db:
+            db.close()
 
     scheduler_running = scheduler is not None and scheduler.running
 

@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import quote
 from datetime import datetime
 from sqlalchemy.orm import Session
 
@@ -52,7 +53,7 @@ def push_feishu(webhook: str, msg: str) -> tuple[bool, str | None]:
 
 def push_fwalert(webhook: str, msg: str) -> tuple[bool, str | None]:
     try:
-        url = webhook + msg
+        url = webhook + quote(msg, safe="")
         r = requests.post(url, timeout=5)
         r.raise_for_status()
         return True, None

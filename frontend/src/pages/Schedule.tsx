@@ -29,12 +29,18 @@ function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null)
   const [currentMonth, setCurrentMonth] = useState(dayjs())
   const [saving, setSaving] = useState(false)
+  const [abortController, setAbortController] = useState<AbortController | null>(null)
 
   const fetchData = async (year: number, month: number) => {
+    if (abortController) {
+      abortController.abort()
+    }
+    const controller = new AbortController()
+    setAbortController(controller)
     try {
       const [shiftsRes, scheduleRes] = await Promise.all([
-        api.get('/shifts'),
-        api.get('/schedule', { params: { year, month } }),
+        api.get('/shifts', { signal: controller.signal }),
+        api.get('/schedule', { params: { year, month }, signal: controller.signal }),
       ])
       setShifts(shiftsRes.data)
       const map: Record<string, ScheduleItem> = {}
@@ -43,7 +49,9 @@ function SchedulePage() {
       })
       setScheduleMap(map)
     } catch (e) {
-      message.error('加载排班失败')
+      if ((e as Error).name !== 'AbortError') {
+        message.error('加载排班失败')
+      }
     }
   }
 

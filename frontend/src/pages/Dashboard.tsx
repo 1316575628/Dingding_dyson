@@ -54,6 +54,7 @@ function saveCache(data: DashboardData) {
 function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(loadCache)
   const [fetching, setFetching] = useState(false)
+  const [skipping, setSkipping] = useState(false)
   const [now, setNow] = useState(dayjs())
   const intervalRef = useRef<number | null>(null)
 
@@ -98,12 +99,16 @@ function Dashboard() {
   }, [])
 
   const toggleSkip = async () => {
+    if (skipping) return
+    setSkipping(true)
     try {
       await api.post('/skip/today', { skipped: !data?.skipped })
       message.success('操作成功')
       fetchData(true)
     } catch (e) {
       message.error('操作失败')
+    } finally {
+      setSkipping(false)
     }
   }
 
@@ -116,7 +121,13 @@ function Dashboard() {
         title="仪表盘"
         subtitle="查看今日班次、打卡窗口状态和系统运行情况"
         actions={
-          <Button type={data?.skipped ? 'default' : 'primary'} danger={!data?.skipped} onClick={toggleSkip}>
+          <Button
+            type={data?.skipped ? 'default' : 'primary'}
+            danger={!data?.skipped}
+            onClick={toggleSkip}
+            loading={skipping}
+            disabled={skipping}
+          >
             {data?.skipped ? '取消跳过今日' : '今日跳过'}
           </Button>
         }
