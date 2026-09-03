@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Table, Button, Modal, Form, Input, TimePicker, InputNumber, Switch, ColorPicker, message, Popconfirm, Card } from 'antd'
+import { Table, Button, Modal, Form, Input, TimePicker, InputNumber, Switch, ColorPicker, message, Popconfirm, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import api from '../api'
 import dayjs from 'dayjs'
 import PageHeader from '../components/PageHeader'
+import SectionCard from '../components/SectionCard'
 
 interface Shift {
   id: number
@@ -90,33 +91,72 @@ function Shifts() {
   }
 
   const columns = [
-    { title: '名称', dataIndex: 'name', key: 'name', render: (v: string) => <span style={{ fontWeight: 600 }}>{v}</span> },
     {
-      title: '颜色',
-      dataIndex: 'color',
-      key: 'color',
-      width: 80,
-      render: (color: string) => (
-        <div style={{ width: 24, height: 24, background: color, borderRadius: 6, border: '1px solid var(--gm-outline)' }} />
+      title: '班次',
+      dataIndex: 'name',
+      key: 'name',
+      render: (v: string, record: Shift) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span
+            style={{
+              width: 12,
+              height: 12,
+              borderRadius: 4,
+              background: record.color,
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontWeight: 500, fontSize: 15 }}>{v}</span>
+          {record.is_rest && <Tag style={{ borderRadius: 999, marginInlineEnd: 0 }}>休息</Tag>}
+        </div>
       ),
     },
-    { title: '上班时间', dataIndex: 'start_time', key: 'start_time' },
-    { title: '下班时间', dataIndex: 'end_time', key: 'end_time' },
-    { title: '上班提前(分)', dataIndex: 'remind_before_min', key: 'remind_before_min', width: 120 },
-    { title: '下班延后(分)', dataIndex: 'remind_after_min', key: 'remind_after_min', width: 120 },
-    { title: '加班(分)', dataIndex: 'overtime_min', key: 'overtime_min', width: 100 },
-    { title: '休息', dataIndex: 'is_rest', key: 'is_rest', width: 80, render: (v: boolean) => (v ? '是' : '否') },
+    {
+      title: '工作时间',
+      key: 'hours',
+      width: 180,
+      render: (_: any, record: Shift) =>
+        record.is_rest ? (
+          <span style={{ color: 'var(--gm-on-surface-faint)' }}>—</span>
+        ) : (
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {record.start_time} – {record.end_time}
+          </span>
+        ),
+    },
+    {
+      title: '上班提醒',
+      key: 'before',
+      width: 120,
+      render: (_: any, record: Shift) =>
+        record.is_rest ? '—' : `提前 ${record.remind_before_min} 分钟`,
+    },
+    {
+      title: '下班提醒',
+      key: 'after',
+      width: 120,
+      render: (_: any, record: Shift) =>
+        record.is_rest ? '—' : `延后 ${record.remind_after_min} 分钟`,
+    },
+    {
+      title: '加班',
+      key: 'overtime',
+      width: 100,
+      render: (_: any, record: Shift) =>
+        record.is_rest ? '—' : record.overtime_min > 0 ? `${record.overtime_min} 分钟` : '无',
+    },
     {
       title: '操作',
       key: 'action',
-      width: 160,
+      width: 140,
+      align: 'right' as const,
       render: (_: any, record: Shift) => (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button type="link" icon={<EditOutlined />} size="small" onClick={() => openEdit(record)} style={{ padding: 0 }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+          <Button type="text" icon={<EditOutlined />} size="small" onClick={() => openEdit(record)}>
             编辑
           </Button>
-          <Popconfirm title="确定删除？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" danger icon={<DeleteOutlined />} size="small" style={{ padding: 0 }}>
+          <Popconfirm title="确定删除该班次？" onConfirm={() => handleDelete(record.id)}>
+            <Button type="text" danger icon={<DeleteOutlined />} size="small">
               删除
             </Button>
           </Popconfirm>
@@ -136,50 +176,60 @@ function Shifts() {
           </Button>
         }
       />
-      <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
+      <SectionCard padding={0}>
         <Table rowKey="id" columns={columns} dataSource={shifts} loading={loading} pagination={false} />
-      </Card>
-      <Modal title={editing ? '编辑班次' : '新建班次'} open={modalOpen} onOk={() => form.submit()} onCancel={() => setModalOpen(false)} destroyOnClose>
-        <Form form={form} layout="vertical" onFinish={handleSave}>
+      </SectionCard>
+      <Modal
+        title={editing ? '编辑班次' : '新建班次'}
+        open={modalOpen}
+        onOk={() => form.submit()}
+        onCancel={() => setModalOpen(false)}
+        okText="保存"
+        width={560}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={handleSave} style={{ marginTop: 20 }}>
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="例如：早班" />
           </Form.Item>
-          <Form.Item name="color" label="颜色" rules={[{ required: true }]}>
-            <ColorPicker showText />
-          </Form.Item>
-          <Form.Item name="is_rest" label="休息类型" valuePropName="checked">
-            <Switch />
-          </Form.Item>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16 }}>
+            <Form.Item name="color" label="颜色" rules={[{ required: true }]}>
+              <ColorPicker showText />
+            </Form.Item>
+            <Form.Item name="is_rest" label="休息类型" valuePropName="checked">
+              <Switch checkedChildren="休息" unCheckedChildren="上班" />
+            </Form.Item>
+          </div>
           {!isRest && (
-            <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16 }}>
               <Form.Item
                 name="start_time"
                 label="上班时间"
-                rules={[{ required: true, message: '非休息班次必须填写上班时间' }]}
+                rules={[{ required: true, message: '必须填写上班时间' }]}
               >
                 <TimePicker format="HH:mm" style={{ width: '100%' }} />
               </Form.Item>
               <Form.Item
                 name="end_time"
                 label="下班时间"
-                rules={[{ required: true, message: '非休息班次必须填写下班时间' }]}
+                rules={[{ required: true, message: '必须填写下班时间' }]}
               >
                 <TimePicker format="HH:mm" style={{ width: '100%' }} />
               </Form.Item>
-            </>
+            </div>
           )}
           {!isRest && (
-            <>
-              <Form.Item name="remind_before_min" label="上班提醒提前量（分钟）">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', columnGap: 16 }}>
+              <Form.Item name="remind_before_min" label="上班提醒提前（分钟）">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item name="remind_after_min" label="下班提醒延后量（分钟）">
+              <Form.Item name="remind_after_min" label="下班提醒延后（分钟）">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
               <Form.Item name="overtime_min" label="加班时长（分钟）">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
-            </>
+            </div>
           )}
         </Form>
       </Modal>

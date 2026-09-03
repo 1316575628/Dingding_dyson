@@ -201,7 +201,7 @@ function SchedulePage() {
                   gap: 6,
                   opacity: inMonth ? 1 : 0.55,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gm-surface-variant)')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gm-surface-1)')}
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.background = inMonth ? 'var(--gm-surface)' : '#fafafa')
                 }

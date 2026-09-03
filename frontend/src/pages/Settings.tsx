@@ -1,8 +1,17 @@
 import { useEffect, useState, useRef } from 'react'
-import { Form, Input, Button, Tabs, message, Card, Space, Divider } from 'antd'
-import { UploadOutlined, ReloadOutlined, SaveOutlined, SettingOutlined, ImportOutlined, NotificationOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Tabs, message, Space } from 'antd'
+import {
+  UploadOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+  SettingOutlined,
+  ImportOutlined,
+  NotificationOutlined,
+  CloudUploadOutlined,
+} from '@ant-design/icons'
 import api from '../api'
 import PageHeader from '../components/PageHeader'
+import SectionCard from '../components/SectionCard'
 
 function Settings() {
   const [form] = Form.useForm()
@@ -97,10 +106,26 @@ function Settings() {
       </Form.Item>
     ))
 
+  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <div
+      style={{
+        fontSize: 13,
+        fontWeight: 600,
+        letterSpacing: 0.5,
+        color: 'var(--gm-primary)',
+        textTransform: 'uppercase',
+        margin: '8px 0 16px',
+      }}
+    >
+      {children}
+    </div>
+  )
+
   return (
     <div>
       <PageHeader title="系统设置" subtitle="配置通知渠道、日志保留与数据导入" />
       <Tabs
+        className="gm-tabs"
         defaultActiveKey="core"
         items={[
           {
@@ -111,11 +136,16 @@ function Settings() {
               </span>
             ),
             children: (
-              <Card style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
+              <SectionCard>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
-                  {renderFormItems(coreItems)}
-                  <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
-                    <Space>
+                  <SectionTitle>接入凭证</SectionTitle>
+                  {renderFormItems(coreItems.slice(0, 2))}
+                  <SectionTitle>推送渠道</SectionTitle>
+                  {renderFormItems(coreItems.slice(2, 4))}
+                  <SectionTitle>运行策略</SectionTitle>
+                  {renderFormItems(coreItems.slice(4))}
+                  <Form.Item style={{ marginTop: 28, marginBottom: 0 }}>
+                    <Space size={12}>
                       <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
                         保存
                       </Button>
@@ -125,7 +155,7 @@ function Settings() {
                     </Space>
                   </Form.Item>
                 </Form>
-              </Card>
+              </SectionCard>
             ),
           },
           {
@@ -136,13 +166,51 @@ function Settings() {
               </span>
             ),
             children: (
-              <Card title="导入排班 JSON" style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
-                <p style={{ color: 'var(--gm-on-surface-variant)' }}>支持导入与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名），文件大小不超过 5MB</p>
-                <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
-                <Button type="primary" icon={<UploadOutlined />} loading={importing} onClick={() => fileInputRef.current?.click()}>
-                  上传 data.json
-                </Button>
-              </Card>
+              <SectionCard>
+                <SectionTitle>导入排班 JSON</SectionTitle>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 16,
+                    padding: '48px 24px',
+                    borderRadius: 12,
+                    border: '2px dashed var(--gm-outline)',
+                    background: 'var(--gm-surface-1)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: '50%',
+                      background: 'var(--gm-primary-container)',
+                      color: 'var(--gm-on-primary-container)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 28,
+                    }}
+                  >
+                    <CloudUploadOutlined />
+                  </span>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--gm-on-surface)', marginBottom: 4 }}>
+                      上传 data.json 排班文件
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--gm-on-surface-variant)' }}>
+                      支持与原 data.json 格式一致的文件（年 → 月 → 日 → 班次名），大小不超过 5MB
+                    </div>
+                  </div>
+                  <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+                  <Button type="primary" icon={<UploadOutlined />} loading={importing} onClick={() => fileInputRef.current?.click()}>
+                    选择文件
+                  </Button>
+                </div>
+              </SectionCard>
             ),
           },
           {
@@ -153,20 +221,22 @@ function Settings() {
               </span>
             ),
             children: (
-              <Card style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
-                <p style={{ color: 'var(--gm-on-surface-variant)' }}>以下配置本期仅作预留，发送逻辑将在后续版本实现。</p>
+              <SectionCard>
+                <p style={{ color: 'var(--gm-on-surface-variant)', marginTop: 0 }}>
+                  以下配置本期仅作预留，发送逻辑将在后续版本实现。
+                </p>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
-                  <Divider orientation="left" style={{ color: 'var(--gm-on-surface-variant)', fontSize: 14, fontWeight: 600 }}>邮件通知</Divider>
+                  <SectionTitle>邮件通知</SectionTitle>
                   {renderFormItems(emailItems)}
-                  <Divider orientation="left" style={{ color: 'var(--gm-on-surface-variant)', fontSize: 14, fontWeight: 600 }}>短信通知</Divider>
+                  <SectionTitle>短信通知</SectionTitle>
                   {renderFormItems(smsItems)}
-                  <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
+                  <Form.Item style={{ marginTop: 28, marginBottom: 0 }}>
                     <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
                       保存
                     </Button>
                   </Form.Item>
                 </Form>
-              </Card>
+              </SectionCard>
             ),
           },
         ]}

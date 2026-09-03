@@ -183,7 +183,7 @@ function Dashboard() {
                   width: 72,
                   height: 72,
                   borderRadius: 20,
-                  background: data?.shift ? `${data.shift.color}18` : 'var(--gm-surface-variant)',
+                  background: data?.shift ? `${data.shift.color}18` : 'var(--gm-surface-1)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -244,20 +244,20 @@ function Dashboard() {
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={8}>
           <StatusCard
-            title="今日班次"
+            label="今日班次"
             value={data?.shift?.name || '休息'}
             loading={showSkeleton}
-            color={data?.shift ? 'var(--gm-primary)' : 'var(--gm-on-surface-variant)'}
+            tone={data?.shift ? 'primary' : 'neutral'}
             icon={<DashboardOutlined />}
             description={data?.shift ? `${data.shift.start_time} - ${data.shift.end_time}` : '今日无排班'}
           />
         </Col>
         <Col xs={24} md={8}>
           <StatusCard
-            title="班次进度"
+            label="班次进度"
             value={progress === null ? '—' : `${progress}%`}
             loading={showSkeleton}
-            color="var(--gm-primary)"
+            tone={progress !== null && progress >= 100 ? 'success' : 'primary'}
             icon={<FieldTimeOutlined />}
             description={
               progress === null ? '无有效班次' : progress >= 100 ? '班次已结束' : '当前班次进行中'
@@ -276,9 +276,9 @@ function Dashboard() {
         </Col>
         <Col xs={24} md={8}>
           <StatusCard
-            title="下次检测"
+            label="下次检测"
             value={`${secondsLeft} 秒后`}
-            color="var(--gm-primary)"
+            tone="primary"
             icon={<SyncOutlined spin={secondsLeft <= 5} />}
             description="系统每分钟整点检测一次打卡状态"
           >
@@ -399,7 +399,7 @@ function CloudStatusItem({
         gap: 20,
         padding: '20px 24px',
         borderRadius: 12,
-        background: 'var(--gm-surface-variant)',
+        background: 'var(--gm-surface-1)',
         border: `1px solid var(--gm-outline-variant)`,
         height: '100%',
       }}
@@ -416,7 +416,7 @@ function CloudStatusItem({
           color: tone,
           fontSize: 26,
           flexShrink: 0,
-          boxShadow: 'var(--shadow-1)',
+          boxShadow: 'var(--elev-1)',
         }}
       >
         {icon}

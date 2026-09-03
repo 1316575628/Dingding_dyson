@@ -1,82 +1,70 @@
-import { Card, Skeleton } from 'antd'
+import { Skeleton } from 'antd'
 
 interface StatusCardProps {
-  title: string
-  value: string | number
+  label: string
+  value: React.ReactNode
   loading?: boolean
-  color?: string
   icon?: React.ReactNode
-  description?: string
+  /** 语义色调 */
+  tone?: 'neutral' | 'primary' | 'success' | 'error' | 'warning'
+  description?: React.ReactNode
   children?: React.ReactNode
 }
 
-function StatusCard({ title, value, loading, color = 'var(--gm-primary)', icon, description, children }: StatusCardProps) {
+const toneTokens = {
+  neutral: { color: 'var(--gm-on-surface)', bg: 'var(--gm-surface-1)' },
+  primary: { color: 'var(--gm-primary)', bg: 'var(--gm-primary-container)' },
+  success: { color: 'var(--gm-success)', bg: 'var(--gm-success-container)' },
+  error: { color: 'var(--gm-error)', bg: 'var(--gm-error-container)' },
+  warning: { color: 'var(--gm-warning)', bg: 'var(--gm-warning-container)' },
+}
+
+function StatusCard({
+  label,
+  value,
+  loading,
+  icon,
+  tone = 'neutral',
+  description,
+  children,
+}: StatusCardProps) {
+  const t = toneTokens[tone]
+
   return (
-    <Card
-      bodyStyle={{ padding: 24, height: '100%' }}
-      style={{
-        height: '100%',
-        borderRadius: 20,
-        border: '1px solid var(--gm-outline-variant)',
-        background: '#fff',
-      }}
-    >
+    <div className="gm-card gm-card--hoverable" style={{ padding: 24, height: '100%' }}>
       {loading ? (
-        <Skeleton active paragraph={{ rows: 2 }} title={{ width: '60%' }} />
+        <Skeleton active paragraph={{ rows: 2 }} title={{ width: '50%' }} />
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: 14, color: 'var(--gm-on-surface-variant)', fontWeight: 500, marginBottom: 8 }}>
-                {title}
-              </div>
-              <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color,
-                  letterSpacing: '-0.5px',
-                  lineHeight: 1.2,
-                }}
-              >
-                {value}
-              </div>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span className="gm-label">{label}</span>
             {icon && (
-              <div
+              <span
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: `${color}15`,
-                  display: 'flex',
+                  width: 40,
+                  height: 40,
+                  borderRadius: 999,
+                  background: t.bg,
+                  color: t.color,
+                  display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color,
-                  fontSize: 22,
+                  fontSize: 20,
                   flexShrink: 0,
                 }}
               >
                 {icon}
-              </div>
+              </span>
             )}
           </div>
-          {description && (
-            <div style={{ marginTop: 16, fontSize: 13, color: 'var(--gm-on-surface-variant)', fontWeight: 500 }}>
-              {description}
-            </div>
-          )}
-          {children && <div style={{ marginTop: 4 }}>{children}</div>}
+          <div className="gm-metric" style={{ color: tone === 'neutral' ? undefined : t.color }}>
+            {value}
+          </div>
+          {description && <div className="gm-body" style={{ fontSize: 13 }}>{description}</div>}
+          {children}
         </div>
       )}
-    </Card>
+    </div>
   )
 }
 
