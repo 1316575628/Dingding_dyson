@@ -70,3 +70,19 @@ def stop_scheduler():
         except Exception:
             pass
         _scheduler_lock = None
+
+
+def is_scheduler_running() -> bool:
+    """检查 scheduler 是否在本进程或其他 worker/进程运行。"""
+    if scheduler is not None and scheduler.running:
+        return True
+    try:
+        # 非阻塞尝试获取锁：能拿到说明没有其它进程持有
+        temp_lock = FileLock(str(SCHEDULER_LOCK_FILE), timeout=0)
+        temp_lock.acquire()
+        temp_lock.release()
+        return False
+    except Timeout:
+        return True
+    except Exception:
+        return False

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Calendar, Modal, message, Card } from 'antd'
 import { CalendarOutlined, CloseOutlined } from '@ant-design/icons'
 import type { Dayjs } from 'dayjs'
@@ -29,14 +29,14 @@ function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null)
   const [currentMonth, setCurrentMonth] = useState(dayjs())
   const [saving, setSaving] = useState(false)
-  const [abortController, setAbortController] = useState<AbortController | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchData = async (year: number, month: number) => {
-    if (abortController) {
-      abortController.abort()
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
     }
     const controller = new AbortController()
-    setAbortController(controller)
+    abortControllerRef.current = controller
     try {
       const [shiftsRes, scheduleRes] = await Promise.all([
         api.get('/shifts', { signal: controller.signal }),

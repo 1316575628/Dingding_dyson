@@ -57,6 +57,7 @@ function Dashboard() {
   const [skipping, setSkipping] = useState(false)
   const [now, setNow] = useState(dayjs())
   const intervalRef = useRef<number | null>(null)
+  const hasDataRef = useRef(false)
 
   const fetchData = async (silent = false) => {
     if (!silent) setFetching(true)
@@ -72,8 +73,9 @@ function Dashboard() {
       }
       setData(payload)
       saveCache(payload)
+      hasDataRef.current = true
     } catch (e) {
-      if (!data) {
+      if (!hasDataRef.current) {
         message.error('获取仪表盘数据失败')
       }
     } finally {

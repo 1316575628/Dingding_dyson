@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, SessionLocal
 from routers import dashboard, shifts, schedule, logs, config, import_data, skip
-from scheduler import start_scheduler, stop_scheduler, scheduler
+from scheduler import start_scheduler, stop_scheduler, is_scheduler_running
 from seed import seed_data
 from migrations import run_migrations
 
@@ -61,7 +61,7 @@ def health_check():
     db_ok = False
     try:
         db = SessionLocal()
-        db.execute(Base.metadata.tables["system_configs"].select().limit(1))
+        db.execute(Base.metadata.tables["system_configs"].select().limit(1)).fetchone()
         db_ok = True
     except Exception:
         db_ok = False
@@ -69,10 +69,10 @@ def health_check():
         if db:
             db.close()
 
-    scheduler_running = scheduler is not None and scheduler.running
+    scheduler_running = is_scheduler_running()
 
     return {
-        "status": "healthy" if db_ok and scheduler_running else "unhealthy",
+        "status": "healthy" if db_ok else "unhealthy",
         "timestamp": datetime.now().isoformat(),
         "database": "ok" if db_ok else "error",
         "scheduler": "running" if scheduler_running else "stopped",

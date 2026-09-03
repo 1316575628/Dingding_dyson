@@ -1,7 +1,7 @@
 import time
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from database import get_db
 from models import Schedule
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 class _TTLCache:
-    """简单的线程安全 TTL 缓存（当前后端单进程使用足够）。"""
+    """简单的 TTL 缓存（当前后端单进程使用足够）。"""
 
     def __init__(self, ttl_seconds: int = 30):
         self.ttl = ttl_seconds
@@ -34,17 +34,36 @@ class _TTLCache:
 _vika_status_cache = _TTLCache(ttl_seconds=30)
 
 
+def _find_active_schedule(db: Session, now: datetime):
+    """查找当前处于打卡窗口的排班，覆盖昨天/今天/明天。"""
+    today = now.date()
+    for offset in (0, 1, -1):
+        check_date = today + timedelta(days=offset)
+        row = db.query(Schedule).filter(Schedule.date == check_date).first()
+        if not row or not row.shift_template:
+            continue
+        action = should_notify_for_date(row.shift_template, check_date, now)
+        if action:
+            return check_date, row.shift_template, action
+    return None, None, None
+
+
 @router.get("")
 def dashboard(db: Session = Depends(get_db)):
     now = datetime.now()
     today = now.date()
 
-    row = db.query(Schedule).filter(Schedule.date == today).first()
-    shift = row.shift_template if row else None
+    active_date, active_shift, action = _find_active_schedule(db, now)
+    today_row = db.query(Schedule).filter(Schedule.date == today).first()
+
+    # 如果有跨天窗口（如明天凌晨班次的前夜提醒），优先展示对应班次
+    shift = active_shift or (today_row.shift_template if today_row else None)
+    shift_date = active_date if active_shift else today
 
     result = {
         "today": today.isoformat(),
         "now": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "shift_date": shift_date.isoformat(),
         "shift": None,
         "window": "休息",
         "clock_in_status": None,
@@ -64,6 +83,8 @@ def dashboard(db: Session = Depends(get_db)):
 
         if shift.is_rest:
             result["window"] = "休息"
+        elif active_shift:
+            result["window"] = "上班打卡时间" if action == "work" else "下班打卡时间"
         else:
             window = should_notify_for_date(shift, today, now)
             if window == "work":

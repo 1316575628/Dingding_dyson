@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from datetime import time
 
 from database import get_db
@@ -35,6 +35,12 @@ class ShiftCreate(BaseModel):
     @classmethod
     def check_time_format(cls, v):
         return _validate_hhmm(v)
+
+    @model_validator(mode="after")
+    def check_work_shift_times(self):
+        if not self.is_rest and (not self.start_time or not self.end_time):
+            raise ValueError("非休息班次必须填写上下班时间")
+        return self
 
 
 class ShiftUpdate(BaseModel):
@@ -143,6 +149,10 @@ def update_shift(shift_id: int, payload: ShiftUpdate, db: Session = Depends(get_
         shift.overtime_min = payload.overtime_min
     if payload.is_rest is not None:
         shift.is_rest = payload.is_rest
+
+    # 更新后若为非休息班次，必须确保上下班时间完整
+    if not shift.is_rest and (shift.start_time is None or shift.end_time is None):
+        raise HTTPException(status_code=400, detail="非休息班次必须填写上下班时间")
 
     db.commit()
     db.refresh(shift)

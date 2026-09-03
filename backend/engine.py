@@ -61,8 +61,24 @@ def reset_daily_status(db: Session):
     today = date.today().isoformat()
     last_date = get_config_value(db, "last_check_date")
     if last_date != today:
-        set_config_value(db, f"clockInDetection_{today}", "上班未打卡")
-        set_config_value(db, f"clockOutDetection_{today}", "下班未打卡")
+        clock_in_key = f"clockInDetection_{today}"
+        clock_out_key = f"clockOutDetection_{today}"
+
+        # 兼容旧版无日期后缀的状态 key：首次升级时迁移当天状态
+        if last_date is None:
+            old_in = get_config_value(db, "clockInDetection")
+            old_out = get_config_value(db, "clockOutDetection")
+            if old_in:
+                set_config_value(db, clock_in_key, old_in)
+            if old_out:
+                set_config_value(db, clock_out_key, old_out)
+            log_info(db, "system", f"检测到旧版状态，已迁移至 {today}")
+
+        # 如果当天还没有状态，则初始化为未打卡
+        if get_config_value(db, clock_in_key) is None:
+            set_config_value(db, clock_in_key, "上班未打卡")
+        if get_config_value(db, clock_out_key) is None:
+            set_config_value(db, clock_out_key, "下班未打卡")
         set_config_value(db, "last_check_date", today)
         log_info(db, "system", f"新的一天 {today}，重置打卡检测状态")
 
