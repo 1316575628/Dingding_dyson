@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Calendar, Modal, Select, message, Card } from 'antd'
-import { CalendarOutlined } from '@ant-design/icons'
+import { Calendar, Modal, message, Card } from 'antd'
+import { CalendarOutlined, CloseOutlined } from '@ant-design/icons'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
 import api from '../api'
@@ -11,6 +11,8 @@ interface Shift {
   name: string
   color: string
   is_rest: boolean
+  start_time: string
+  end_time: string
 }
 
 interface ScheduleItem {
@@ -25,8 +27,8 @@ function SchedulePage() {
   const [shifts, setShifts] = useState<Shift[]>([])
   const [scheduleMap, setScheduleMap] = useState<Record<string, ScheduleItem>>({})
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null)
-  const [selectedShift, setSelectedShift] = useState<number | null>(null)
   const [currentMonth, setCurrentMonth] = useState(dayjs())
+  const [saving, setSaving] = useState(false)
 
   const fetchData = async (year: number, month: number) => {
     try {
@@ -51,23 +53,28 @@ function SchedulePage() {
 
   const handleDateSelect = (date: Dayjs) => {
     setSelectedDate(date)
-    const item = scheduleMap[date.format('YYYY-MM-DD')]
-    setSelectedShift(item ? item.shift_template_id : null)
   }
 
-  const handleSave = async () => {
+  const handleSelectShift = async (shiftId: number | null) => {
     if (!selectedDate) return
+    setSaving(true)
     try {
       await api.post('/schedule/set', {
         date: selectedDate.format('YYYY-MM-DD'),
-        shift_template_id: selectedShift,
+        shift_template_id: shiftId,
       })
-      message.success('保存成功')
+      message.success('排班已保存')
       setSelectedDate(null)
       fetchData(currentMonth.year(), currentMonth.month() + 1)
     } catch (e) {
       message.error('保存失败')
+    } finally {
+      setSaving(false)
     }
+  }
+
+  const handleClear = async () => {
+    await handleSelectShift(null)
   }
 
   const dateCellRender = (date: Dayjs) => {
@@ -92,9 +99,11 @@ function SchedulePage() {
     )
   }
 
+  const selectedItem = selectedDate ? scheduleMap[selectedDate.format('YYYY-MM-DD')] : null
+
   return (
     <div>
-      <PageHeader title="排班日历" subtitle="点击日期设置当天的班次模板" />
+      <PageHeader title="排班日历" subtitle="点击日期快速设置班次" />
       <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: '1px solid var(--gm-outline-variant)' }}>
         <Calendar
           value={currentMonth}
@@ -108,21 +117,81 @@ function SchedulePage() {
         title={
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CalendarOutlined style={{ color: 'var(--gm-primary)' }} />
-            设置 {selectedDate?.format('YYYY年MM月DD日')} 排班
+            选择 {selectedDate?.format('YYYY年MM月DD日')} 的班次
           </span>
         }
         open={!!selectedDate}
-        onOk={handleSave}
         onCancel={() => setSelectedDate(null)}
+        footer={null}
+        width={440}
+        bodyStyle={{ padding: '24px 32px 32px' }}
       >
-        <Select
-          style={{ width: '100%' }}
-          placeholder="选择班次"
-          value={selectedShift}
-          onChange={setSelectedShift}
-          allowClear
-          options={shifts.map((s) => ({ label: s.name, value: s.id }))}
-        />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+          {shifts.map((shift) => {
+            const active = selectedItem?.shift_template_id === shift.id
+            return (
+              <button
+                key={shift.id}
+                disabled={saving}
+                onClick={() => handleSelectShift(shift.id)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: 16,
+                  borderRadius: 16,
+                  border: active ? `2px solid ${shift.color}` : '1px solid var(--gm-outline)',
+                  background: active ? `${shift.color}12` : 'var(--gm-surface)',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: shift.color,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.12)',
+                  }}
+                />
+                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--gm-on-surface)' }}>{shift.name}</span>
+                {shift.is_rest ? (
+                  <span style={{ fontSize: 12, color: 'var(--gm-on-surface-variant)' }}>休息</span>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--gm-on-surface-variant)' }}>
+                    {shift.start_time} - {shift.end_time}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+          <button
+            disabled={saving}
+            onClick={handleClear}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: 16,
+              borderRadius: 16,
+              border: '1px dashed var(--gm-outline)',
+              background: 'var(--gm-surface)',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s ease',
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            <CloseOutlined style={{ fontSize: 20, color: 'var(--gm-on-surface-variant)' }} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--gm-on-surface)' }}>无排班</span>
+            <span style={{ fontSize: 12, color: 'var(--gm-on-surface-variant)' }}>清除班次</span>
+          </button>
+        </div>
       </Modal>
     </div>
   )
