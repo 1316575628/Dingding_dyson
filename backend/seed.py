@@ -67,16 +67,19 @@ def seed_data():
         ]
         config_path = None
         for p in config_paths:
-            if os.path.exists(p):
+            if os.path.exists(p) and os.path.isfile(p):
                 config_path = p
                 break
         if config_path:
-            with open(config_path, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-            for key, value in cfg.items():
-                existing = db.query(SystemConfig).filter(SystemConfig.key == key).first()
-                if not existing:
-                    db.add(SystemConfig(key=key, value=str(value)))
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                for key, value in cfg.items():
+                    existing = db.query(SystemConfig).filter(SystemConfig.key == key).first()
+                    if not existing:
+                        db.add(SystemConfig(key=key, value=str(value)))
+            except Exception as e:
+                print(f"[seed] 读取 config.json 失败 ({config_path}): {e}")
 
         # 默认日志保留天数
         if not db.query(SystemConfig).filter(SystemConfig.key == "log_retention_days").first():
