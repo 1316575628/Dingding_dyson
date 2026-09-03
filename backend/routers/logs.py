@@ -17,6 +17,7 @@ class LogOut(BaseModel):
     log_type: str
     channel: str
     result: str
+    level: str
     detail: str | None
 
     class Config:
@@ -30,6 +31,7 @@ def list_logs(
     log_type: str | None = None,
     channel: str | None = None,
     result: str | None = None,
+    level: str | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
     keyword: str | None = None,
@@ -43,6 +45,8 @@ def list_logs(
         query = query.filter(PushLog.channel == channel)
     if result:
         query = query.filter(PushLog.result == result)
+    if level:
+        query = query.filter(PushLog.level == level)
     if start_date:
         start_dt = datetime.combine(start_date, datetime.min.time())
         query = query.filter(PushLog.timestamp >= start_dt)

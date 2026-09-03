@@ -9,6 +9,7 @@ interface LogItem {
   log_type: string
   channel: string
   result: string
+  level: string
   detail: string | null
 }
 
@@ -20,6 +21,7 @@ function Logs() {
     log_type: undefined as string | undefined,
     channel: undefined as string | undefined,
     result: undefined as string | undefined,
+    level: undefined as string | undefined,
     start_date: undefined as string | undefined,
     end_date: undefined as string | undefined,
     keyword: '',
@@ -52,8 +54,23 @@ function Logs() {
     fetchLogs(p.current, p.pageSize)
   }
 
+  const levelTag = (level: string) => {
+    const colorMap: Record<string, string> = {
+      info: 'blue',
+      warning: 'orange',
+      error: 'red',
+    }
+    const labelMap: Record<string, string> = {
+      info: '信息',
+      warning: '警告',
+      error: '错误',
+    }
+    return <Tag color={colorMap[level] || 'default'}>{labelMap[level] || level}</Tag>
+  }
+
   const columns = [
     { title: '时间', dataIndex: 'timestamp', key: 'timestamp', render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm:ss') },
+    { title: '级别', dataIndex: 'level', key: 'level', render: levelTag },
     { title: '类型', dataIndex: 'log_type', key: 'log_type', render: (v: string) => {
       const map: Record<string, string> = { work: '上班提醒', worked: '下班提醒', system: '系统' }
       return map[v] || v
@@ -68,6 +85,18 @@ function Logs() {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Select
+          placeholder="级别"
+          allowClear
+          style={{ width: 120 }}
+          value={filters.level}
+          onChange={(v) => setFilters({ ...filters, level: v })}
+          options={[
+            { label: '信息', value: 'info' },
+            { label: '警告', value: 'warning' },
+            { label: '错误', value: 'error' },
+          ]}
+        />
         <Select
           placeholder="类型"
           allowClear

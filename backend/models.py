@@ -37,6 +37,7 @@ class PushLog(Base):
     log_type = Column(String, nullable=False)
     channel = Column(String, nullable=False)
     result = Column(String, nullable=False)
+    level = Column(String, nullable=False, default="info")
     detail = Column(String, nullable=True)
 
 
