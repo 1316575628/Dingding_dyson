@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Card, Row, Col, Tag, Button, message, Skeleton } from 'antd'
 import { CheckCircleOutlined, PauseCircleOutlined, FieldTimeOutlined, CalendarOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import api from '../api'
 import StatusCard from '../components/StatusCard'
 
@@ -15,7 +16,6 @@ interface Shift {
 
 interface DashboardData {
   today: string
-  now: string
   shift: Shift | null
   window: string
   clock_in_status: string | null
@@ -23,39 +23,85 @@ interface DashboardData {
   skipped: boolean
 }
 
-function Dashboard() {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(false)
+const CACHE_KEY = 'dingding_dashboard_cache'
 
-  const fetchData = async () => {
-    setLoading(true)
+function loadCache(): DashboardData | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveCache(data: DashboardData) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+  } catch {
+    // ignore
+  }
+}
+
+function Dashboard() {
+  const [data, setData] = useState<DashboardData | null>(loadCache)
+  const [fetching, setFetching] = useState(false)
+  const [now, setNow] = useState(dayjs())
+  const intervalRef = useRef<number | null>(null)
+
+  const fetchData = async (silent = false) => {
+    if (!silent) setFetching(true)
     try {
       const res = await api.get('/dashboard')
-      setData(res.data)
+      const payload: DashboardData = {
+        today: res.data.today,
+        shift: res.data.shift,
+        window: res.data.window,
+        clock_in_status: res.data.clock_in_status,
+        clock_out_status: res.data.clock_out_status,
+        skipped: res.data.skipped,
+      }
+      setData(payload)
+      saveCache(payload)
     } catch (e) {
-      message.error('获取仪表盘数据失败')
+      if (!data) {
+        message.error('获取仪表盘数据失败')
+      }
     } finally {
-      setLoading(false)
+      if (!silent) setFetching(false)
     }
   }
+
+  useEffect(() => {
+    // 首次进入：有缓存则静默刷新，无缓存才显示加载
+    fetchData(!!data)
+
+    intervalRef.current = window.setInterval(() => {
+      fetchData(true)
+    }, 30000)
+
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    // 客户端实时时钟，每秒更新
+    const timer = window.setInterval(() => setNow(dayjs()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const toggleSkip = async () => {
     try {
       await api.post('/skip/today', { skipped: !data?.skipped })
       message.success('操作成功')
-      fetchData()
+      fetchData(true)
     } catch (e) {
       message.error('操作失败')
     }
   }
 
-  useEffect(() => {
-    fetchData()
-    const timer = setInterval(fetchData, 30000)
-    return () => clearInterval(timer)
-  }, [])
-
   const inWindow = data?.window === '上班打卡时间' || data?.window === '下班打卡时间'
+  const showSkeleton = !data && fetching
 
   return (
     <div>
@@ -64,7 +110,7 @@ function Dashboard() {
           <StatusCard
             title="今日班次"
             value={data?.shift?.name || '休息'}
-            loading={loading && !data}
+            loading={showSkeleton}
             valueStyle={{ color: data?.shift ? '#1a73e8' : '#5f6368' }}
             suffix={
               data?.shift ? (
@@ -79,7 +125,7 @@ function Dashboard() {
           <StatusCard
             title="上班窗口"
             value={data?.window === '上班打卡时间' ? '进行中' : '未开启'}
-            loading={loading && !data}
+            loading={showSkeleton}
             valueStyle={{ color: data?.window === '上班打卡时间' ? '#34a853' : '#5f6368' }}
             suffix={
               <FieldTimeOutlined
@@ -96,7 +142,7 @@ function Dashboard() {
           <StatusCard
             title="下班窗口"
             value={data?.window === '下班打卡时间' ? '进行中' : '未开启'}
-            loading={loading && !data}
+            loading={showSkeleton}
             valueStyle={{ color: data?.window === '下班打卡时间' ? '#34a853' : '#5f6368' }}
             suffix={
               <FieldTimeOutlined
@@ -119,12 +165,12 @@ function Dashboard() {
             详细信息
           </span>
         }
-        loading={loading && !data}
+        loading={showSkeleton}
       >
-        <Skeleton active loading={loading && !data} paragraph={{ rows: 5 }} title={false}>
+        <Skeleton active loading={showSkeleton} paragraph={{ rows: 5 }} title={false}>
           <div style={{ display: 'grid', gap: 14, color: '#202124' }}>
             <InfoRow label="日期" value={data?.today} icon={<CalendarOutlined style={{ color: '#9aa0a6' }} />} />
-            <InfoRow label="当前时间" value={data?.now} />
+            <InfoRow label="当前时间" value={now.format('YYYY-MM-DD HH:mm:ss')} />
             <InfoRow
               label="班次"
               value={
