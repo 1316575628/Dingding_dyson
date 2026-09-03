@@ -44,7 +44,7 @@ jobs:
         run: |
           echo "Registry: ${{ env.REGISTRY }}"
           echo "Image: ${{ env.BACKEND_IMAGE }}"
-          docker info | grep -i registry
+          docker info || true
 
       - name: Extract metadata (tags, labels)
         id: meta
@@ -115,7 +115,7 @@ jobs:
         run: |
           echo "Registry: ${{ env.REGISTRY }}"
           echo "Image: ${{ env.FRONTEND_IMAGE }}"
-          docker info | grep -i registry
+          docker info || true
 
       - name: Extract metadata (tags, labels)
         id: meta
