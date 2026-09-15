@@ -1,4 +1,6 @@
 from datetime import datetime, date, timedelta
+import re
+
 import requests
 from sqlalchemy.orm import Session
 
@@ -6,6 +8,18 @@ from database import SessionLocal
 from models import Schedule, SystemConfig
 from routers.config import get_config_value, set_config_value
 from services.push import push_all, log_info, log_warn, log_error
+
+# 带日期后缀的按日状态 key（clockInDetection_2026-09-03 / skip_2026-09-03 等）
+_DAILY_KEY_RE = re.compile(r"^(clockInDetection|clockOutDetection|skip)_\d{4}-\d{2}-\d{2}$")
+
+
+def is_punched(status: str | None) -> bool:
+    """判断打卡状态是否为「已打卡」。
+
+    只有从云端明确拉取到包含「已打卡」的状态才视为已打卡；
+    「未打卡」「已提醒」、空值等一律视为未确认打卡，需要继续检测/提醒。
+    """
+    return bool(status) and "已打卡" in status
 
 
 def should_notify_for_date(shift, base_date: date, now: datetime) -> str:
@@ -57,21 +71,27 @@ def is_skipped_today(db: Session) -> bool:
 
 
 def reset_daily_status(db: Session):
-    """新的一天开始时重置当天上下班打卡状态"""
+    """新的一天开始时重置当天上下班打卡状态，并清理历史日期的状态 key"""
     today = date.today().isoformat()
     last_date = get_config_value(db, "last_check_date")
     if last_date != today:
         clock_in_key = f"clockInDetection_{today}"
         clock_out_key = f"clockOutDetection_{today}"
 
-        # 兼容旧版无日期后缀的状态 key：首次升级时迁移当天状态
+        # 兼容旧版无日期后缀的状态 key：首次升级时仅迁移「已打卡」状态，
+        # 旧的「已提醒」不代表已打卡，不迁移（视为未打卡重新检测）
         if last_date is None:
             old_in = get_config_value(db, "clockInDetection")
             old_out = get_config_value(db, "clockOutDetection")
-            if old_in:
+            if is_punched(old_in):
                 set_config_value(db, clock_in_key, old_in)
-            if old_out:
+            if is_punched(old_out):
                 set_config_value(db, clock_out_key, old_out)
+            # 删除旧版无日期后缀的残留 key
+            db.query(SystemConfig).filter(
+                SystemConfig.key.in_(["clockInDetection", "clockOutDetection"])
+            ).delete(synchronize_session=False)
+            db.commit()
             log_info(db, "system", f"检测到旧版状态，已迁移至 {today}")
 
         # 如果当天还没有状态，则初始化为未打卡
@@ -80,6 +100,19 @@ def reset_daily_status(db: Session):
         if get_config_value(db, clock_out_key) is None:
             set_config_value(db, clock_out_key, "下班未打卡")
         set_config_value(db, "last_check_date", today)
+
+        # 清理历史日期的状态 key（含旧版迁移残留），避免无限累积
+        stale_keys = [
+            row.key
+            for row in db.query(SystemConfig).all()
+            if _DAILY_KEY_RE.match(row.key) and not row.key.endswith(f"_{today}")
+        ]
+        if stale_keys:
+            db.query(SystemConfig).filter(SystemConfig.key.in_(stale_keys)).delete(
+                synchronize_session=False
+            )
+            db.commit()
+
         log_info(db, "system", f"新的一天 {today}，重置打卡检测状态")
 
 
@@ -143,30 +176,33 @@ def run_check():
         clock_out_key = f"clockOutDetection_{date_str}"
 
         if action == "work":
-            local_status = get_config_value(db, clock_in_key) or "上班未打卡"
-            log_info(db, "system", f"本地上班状态：{local_status}")
-            if local_status not in ("上班未打卡", ""):
-                log_info(db, "system", "本地已记录上班打卡或已提醒，跳过推送")
+            local_status = get_config_value(db, clock_in_key)
+            log_info(db, "system", f"本地上班状态：{local_status or '上班未打卡'}")
+            # 本地缓存的唯一作用：已从云端确认「已打卡」后，不再重复请求云端和推送
+            if is_punched(local_status):
+                log_info(db, "system", "本地已缓存云端确认的上班打卡状态，跳过检测与推送")
                 return
+            # 未确认打卡：每次检查都从云端拉取最新状态
             try:
                 status = query_vika_status(api_key, dst_id, 1)
                 log_info(db, "system", f"维格表上班状态：{status}")
             except Exception as e:
                 log_error(db, "system", f"查询上班打卡状态失败: {e}")
                 return
-            if status == "上班未打卡":
+            if is_punched(status):
+                # 云端已打卡：同步到本地缓存，此后停止提醒
+                set_config_value(db, clock_in_key, status)
+                log_info(db, "system", f"云端显示上班已打卡（{status}），已同步本地，停止提醒")
+            else:
+                # 云端未确认打卡：持续推送提醒，直到云端出现已打卡状态
                 log_info(db, "system", "云端显示上班未打卡，准备推送提醒")
                 push_all(db, "work", "上班打卡咯", fs_webhook, fw_webhook)
-                set_config_value(db, clock_in_key, "已提醒")
-            else:
-                log_info(db, "system", "云端显示上班已打卡，无需推送")
-                set_config_value(db, clock_in_key, status)
 
         elif action == "worked":
-            local_status = get_config_value(db, clock_out_key) or "下班未打卡"
-            log_info(db, "system", f"本地下班状态：{local_status}")
-            if local_status not in ("下班未打卡", ""):
-                log_info(db, "system", "本地已记录下班打卡或已提醒，跳过推送")
+            local_status = get_config_value(db, clock_out_key)
+            log_info(db, "system", f"本地下班状态：{local_status or '下班未打卡'}")
+            if is_punched(local_status):
+                log_info(db, "system", "本地已缓存云端确认的下班打卡状态，跳过检测与推送")
                 return
             try:
                 status = query_vika_status(api_key, dst_id, 2)
@@ -174,13 +210,12 @@ def run_check():
             except Exception as e:
                 log_error(db, "system", f"查询下班打卡状态失败: {e}")
                 return
-            if status == "下班未打卡":
+            if is_punched(status):
+                set_config_value(db, clock_out_key, status)
+                log_info(db, "system", f"云端显示下班已打卡（{status}），已同步本地，停止提醒")
+            else:
                 log_info(db, "system", "云端显示下班未打卡，准备推送提醒")
                 push_all(db, "worked", "下班打卡咯", fs_webhook, fw_webhook)
-                set_config_value(db, clock_out_key, "已提醒")
-            else:
-                log_info(db, "system", "云端显示下班已打卡，无需推送")
-                set_config_value(db, clock_out_key, status)
 
     except Exception as e:
         log_error(db, "system", f"打卡检查异常: {e}")

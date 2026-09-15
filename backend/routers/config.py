@@ -17,8 +17,6 @@ DEFAULT_CONFIG_KEYS = [
     "DST_ID",
     "fs_webhook",
     "fw_webhook",
-    "clockInDetection",
-    "clockOutDetection",
     "work_overtime",
     "log_retention_days",
     "email_smtp_host",
