@@ -16,7 +16,13 @@ ui_print "**************************************"
 ui_print "     HyperFont for HyperOS 3"
 ui_print "**************************************"
 ui_print " "
-ui_print "- Magisk: v$MAGISK_VER (code $MAGISK_VER_CODE)"
+if [ "$KSU" = "true" ]; then
+  ui_print "- 管理器: KernelSU"
+elif [ -n "$MAGISK_VER" ]; then
+  ui_print "- 管理器: Magisk v$MAGISK_VER"
+else
+  ui_print "- 管理器: 未知 (兼容模式)"
+fi
 ui_print "- 设备: $(getprop ro.product.marketname) ($(getprop ro.product.device))"
 API=$(getprop ro.build.version.sdk)
 ui_print "- 系统: $(getprop ro.mi.os.version.name)$(getprop ro.miui.ui.version.name) Android $(getprop ro.build.version.release) (API $API)"

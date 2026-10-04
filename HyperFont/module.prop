@@ -3,4 +3,4 @@ name=HyperFont for HyperOS 3
 version=v1.0.0
 versionCode=1
 author=user
-description=澎湃OS 3 (HyperOS 3 / Android 16) 字体替换模块：自动将自定义字重就近映射，覆盖系统 MiSans 全字重（可选取代 Roboto），支持 TTF/OTF/TTC。卸载模块即恢复原字体。
+description=澎湃OS 3 (HyperOS 3 / Android 16) 字体替换模块：Magisk / KernelSU / APatch 通用。自动将自定义字重就近映射，覆盖系统 MiSans 全字重（可选取代 Roboto），支持 TTF/OTF/TTC 及可变字体。卸载模块即恢复原字体。
